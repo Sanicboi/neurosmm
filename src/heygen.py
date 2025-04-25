@@ -3,9 +3,13 @@ import requests
 
 
 
+    
+
+
 class HeyGen:
     def __init__(self):
         self._token = getenv("HEYGEN_TOKEN")
+
     
 
     def get_avatars(self):
@@ -15,7 +19,7 @@ class HeyGen:
         data = res.json()
         return data['data']['avatars']
 
-    def generate_video(self, avatar_id, voice_id, avatar_style="normal", voice_type="text", voice_text="", speed=1.0, caption=False):
+    def generate_video(self, avatar_id, voice_id, avatar_style="normal", voice_type="text", voice_text="", speed=1.0, caption=False, callback_id = None):
         res = requests.post("https://api.heygen.com/v2/video/generate", data={
             "video_inputs": [
                 {
@@ -39,10 +43,10 @@ class HeyGen:
                 "width": 720,
                 "height": 1280
             },
-            "caption": caption
+            "caption": caption,
+            "callback_id": callback_id
         }, headers={
             'X-Api-Key': self._token,
             'Content-Type': 'application/json'
         })
 
-        
