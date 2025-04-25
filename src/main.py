@@ -5,7 +5,9 @@ from flask import Flask, request
 from aiogram import Bot, Dispatcher, Router, types
 from os import getenv
 import nest_asyncio
+
 load_dotenv()
+nest_asyncio.apply()
 
 heygen = HeyGen()
 app = Flask(__name__)
@@ -51,8 +53,17 @@ async def run_bot():
 def run_flask():
     app.run('0.0.0.0', port=5000)
 
+async def main():
+    bot_task = asyncio.create_task(run_bot())
+    server_task = asyncio.create_task(run_flask())
+    await asyncio.gather(bot_task, server_task)
+
 
 if __name__ == "__main__":
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    asyncio.run(run_bot())
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+    except Exception as error:
+        print(error)
+    finally:
+        print("Shutting down")
