@@ -70,7 +70,7 @@ AppDataSource.initialize().then(async () => {
             user.avatarId = q.data.substring(7);
             await manager.save(user);
 
-            const voices = (await heygen.getVoices()).filter(el => el.support_locale).slice(0, 10);
+            const voices = (await heygen.getVoices()).slice(0, 10);
             await bot.sendMessage(user.id, 'Выберите голос', {
                 reply_markup: {
                     inline_keyboard: voices.map<InlineKeyboardButton[]>(el => [{
