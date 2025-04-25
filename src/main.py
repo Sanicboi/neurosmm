@@ -7,8 +7,9 @@ from os import getenv
 import threading
 import nest_asyncio
 
-load_dotenv()
 nest_asyncio.apply()
+load_dotenv()
+
 
 heygen = HeyGen()
 app = Flask(__name__)
