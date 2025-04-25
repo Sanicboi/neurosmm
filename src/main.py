@@ -18,6 +18,8 @@ generating = False
 
 @dp.message()
 async def onMessage(message: types.Message):
+    global generating
+    global userId
     if message.text == '/generate':
         generating = True
         await message.answer("Пришлите мне скрипт вашего видео")
