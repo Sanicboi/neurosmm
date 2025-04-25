@@ -20,7 +20,7 @@ class HeyGen:
         return data['data']['avatars']
 
     def generate_video(self, avatar_id, voice_id, avatar_style="normal", voice_type="text", voice_text="", speed=1.0, caption=False, callback_id = None):
-        res = requests.post("https://api.heygen.com/v2/video/generate", data={
+        res = requests.post("https://api.heygen.com/v2/video/generate", json={
             "video_inputs": [
                 {
                     "character": {
@@ -50,5 +50,4 @@ class HeyGen:
             'Content-Type': 'application/json'
         })
         print(res.status_code)
-        print(res.json())
 
