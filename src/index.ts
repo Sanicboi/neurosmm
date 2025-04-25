@@ -69,7 +69,7 @@ AppDataSource.initialize().then(async () => {
         if (q.data?.startsWith('avatar-')) {
             user.avatarId = q.data.substring(7);
             await manager.save(user);
-
+            console.log('up to here');
             const voices = (await heygen.getVoices()).slice(0, 10);
             await bot.sendMessage(user.id, 'Выберите голос', {
                 reply_markup: {
