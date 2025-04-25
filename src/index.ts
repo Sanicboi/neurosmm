@@ -62,35 +62,40 @@ AppDataSource.initialize().then(async () => {
     });
 
     bot.on('callback_query', async (q) => {
-        console.log("I am here");
-        const user = await manager.findOneBy(User, {
-            id: q.from.id
-        });
-        if (!user) return;
-        if (q.data?.startsWith('avatar-')) {
-            user.avatarId = q.data.substring(7);
-            await manager.save(user);
-            console.log('up to here');
-            const voices = (await heygen.getVoices()).slice(0, 10);
-            await bot.sendMessage(user.id, 'Выберите голос', {
-                reply_markup: {
-                    inline_keyboard: voices.map<InlineKeyboardButton[]>(el => [{
-                        text: el.name,
-                        callback_data: `voice-${el.voice_id}`
-                    }])
-                }
+        try {
+            console.log("I am here");
+            const user = await manager.findOneBy(User, {
+                id: q.from.id
             });
-
-
+            if (!user) return;
+            if (q.data?.startsWith('avatar-')) {
+                user.avatarId = q.data.substring(7);
+                await manager.save(user);
+                console.log('up to here');
+                const voices = (await heygen.getVoices()).slice(0, 10);
+                await bot.sendMessage(user.id, 'Выберите голос', {
+                    reply_markup: {
+                        inline_keyboard: voices.map<InlineKeyboardButton[]>(el => [{
+                            text: el.name,
+                            callback_data: `voice-${el.voice_id}`
+                        }])
+                    }
+                });
+    
+    
+            }
+            if (q.data?.startsWith('voice-')) {
+                user.voiceId = q.data.substring(6);
+                user.generating = true;
+                await manager.save(user);
+    
+                await bot.sendMessage(user.id, "Пришлите мне скрипт");
+                
+            }
+        } catch (e) {
+            console.error(e);
         }
-        if (q.data?.startsWith('voice-')) {
-            user.voiceId = q.data.substring(6);
-            user.generating = true;
-            await manager.save(user);
-
-            await bot.sendMessage(user.id, "Пришлите мне скрипт");
-            
-        }
+ 
         
     });
 
