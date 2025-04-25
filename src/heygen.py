@@ -49,4 +49,6 @@ class HeyGen:
             'X-Api-Key': self._token,
             'Content-Type': 'application/json'
         })
+        print(res.status_code)
+        print(res.json())
 
