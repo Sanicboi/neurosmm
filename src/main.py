@@ -24,9 +24,12 @@ async def onMessage(message: types.Message):
         generating = True
         await message.answer("Пришлите мне скрипт вашего видео")
     elif generating:
+        print("Generating the video")
         generating = False
         avatars = heygen.get_avatars()
+        print(avatars)
         userId = message.from_user.id
+        print(avatars[0]['avatar_id'])
         heygen.generate_video(avatar_id=avatars[0]['avatar_id'], voice_id='c8e176c17f814004885fd590e03ff99f', voice_text=message.text, caption=True, callback_id=userId)
 
     
