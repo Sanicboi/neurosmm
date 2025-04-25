@@ -4,7 +4,7 @@ from heygen import HeyGen
 from flask import Flask, request
 from aiogram import Bot, Dispatcher, Router, types
 from os import getenv
-import threading
+import nest_asyncio
 load_dotenv()
 
 heygen = HeyGen()
