@@ -1,0 +1,10 @@
+POST https://api.heygen.com/v1/webhook/endpoint.add HTTP/1.1
+Content-Type: application/json
+X-Api-Key: MzVkMTcxYmY3NmQ3NDkzNjlmYmVhZjA2NTEzMzk1ODgtMTc0NTM5MTY5OA==
+
+{
+    "url": "http://194.0.194.46:5000/webhook",
+    "events": [
+        "avatar_video.success"
+    ]
+}

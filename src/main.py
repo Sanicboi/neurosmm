@@ -4,6 +4,7 @@ from heygen import HeyGen
 from flask import Flask, request
 from aiogram import Bot, Dispatcher, Router, types
 from os import getenv
+import threading
 load_dotenv()
 
 heygen = HeyGen()
@@ -28,7 +29,6 @@ async def onMessage(message: types.Message):
 
     
 
-
 @app.post('/webhook')
 async def webhook():
     event_type = request.json['event_type']
@@ -40,11 +40,14 @@ async def webhook():
 
 
 
-async def main():
-    dp.run_polling(bot)
+async def run_bot():
+    await dp.start_polling(bot)
     
-
+def run_flask():
+    app.run('0.0.0.0', port=5000)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+    asyncio.run(run_bot())
