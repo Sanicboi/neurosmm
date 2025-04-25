@@ -27,7 +27,7 @@ async def onMessage(message: types.Message):
         generating = False
         avatars = heygen.get_avatars()
         userId = message.from_user.id
-        heygen.generate_video(avatar_id=avatars[0]['avatar_id'], voice_id='', voice_text=message.text, caption=True, callback_id=userId)
+        heygen.generate_video(avatar_id=avatars[0]['avatar_id'], voice_id='c8e176c17f814004885fd590e03ff99f', voice_text=message.text, caption=True, callback_id=userId)
 
     
 
