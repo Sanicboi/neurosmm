@@ -62,6 +62,7 @@ AppDataSource.initialize().then(async () => {
     });
 
     bot.on('callback_query', async (q) => {
+        console.log(q);
         const user = await manager.findOneBy(User, {
             id: q.from.id
         });
