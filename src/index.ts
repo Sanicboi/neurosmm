@@ -124,14 +124,16 @@ AppDataSource.initialize().then(async () => {
                                 voice_id: user.voiceId
                             }
                         }
-                    ]
+                    ],
+                    caption: true,
+                    callback_id: String(user.id)
                 });
                 user.generating = false;
                 await manager.save(user);
                 await bot.sendMessage(user.id, 'Генерирую и монтирую видео');
             }
         }
-    })
+    });
 
     app.listen(5000);
 
