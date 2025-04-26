@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryColumn } from "typeorm"
+import { Entity, Column, PrimaryColumn, OneToMany } from "typeorm"
+import { Video } from "./Video";
 
 @Entity()
 export class User {
@@ -21,6 +22,7 @@ export class User {
     })
     voiceId: string;
 
-    
+    @OneToMany(() => Video, (video) => video.user)
+    videos: Video[];    
 
 }

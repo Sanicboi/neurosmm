@@ -4,6 +4,7 @@ import { User } from "./entity/User"
 import express from 'express';
 import { HeyGen } from "./HeyGen";
 import TelegramBot, { InlineKeyboardButton } from 'node-telegram-bot-api';
+import { Video } from './entity/Video';
 
 
 
@@ -14,7 +15,7 @@ AppDataSource.initialize().then(async () => {
     const bot = new TelegramBot(process.env.TELEGRAM_TOKEN!, {
         polling: true
     })
-
+    app.use(express.json());
     app.post('/webhook', async (req: express.Request<any, any, {
         event_type: 'avatar_video.success',
         event_data: {
@@ -23,15 +24,30 @@ AppDataSource.initialize().then(async () => {
             callback_id: string;
         }
     }>, res) => {
+        const video = new Video();
+        video.id = req.body.event_data.video_id;
+        video.user = new User();
+        video.user.id = +req.body.event_data.callback_id;
+        video.url = req.body.event_data.url;
+        await manager.save(video);
         await bot.sendVideo(+req.body.event_data.callback_id, req.body.event_data.url, {
             caption: 'Видео готово'
         });
+        res.status(200).end()
     });
 
     await bot.setMyCommands([
         {
             command: 'generate',
             description: 'Сгенерировать видео'
+        },
+        {
+            command: 'settings',
+            description: 'Настройки'
+        },
+        {
+            command: 'archive',
+            description: 'Архив генерации'
         }
     ])
 
@@ -98,6 +114,51 @@ AppDataSource.initialize().then(async () => {
  
         
     });
+
+    bot.onText(/\/archive/, async (msg) => {
+        const user = await manager.findOne(User,{
+            where: {
+                id: msg.from?.id
+            },
+            relations: {
+                videos: true
+            }
+        });
+        if (!user) return;
+        if (user.videos.length === 0) return await bot.sendMessage(user.id, 'У вас нет видео');
+
+        for (const v of user.videos) {
+            await bot.sendVideo(user.id, v.url);
+        }
+
+    });
+
+    bot.onText(/\/settings/, async (msg) => {
+        await bot.sendMessage(msg.from!.id, 'Настрйоки', {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: 'Настройки голоса',
+                            callback_data: 'settings-voice'
+                        }
+                    ],
+                    [
+                        {
+                            text: 'Настройки аватаров',
+                            callback_data: 'settings-avatars'
+                        }
+                    ],
+                    [
+                        {
+                            text: 'Настройки субтитров',
+                            callback_data: 'settings-subtitles'
+                        }
+                    ]
+                ]
+            }
+        })
+    })
 
     bot.onText(/./, async (msg) => {
         if (!msg.text?.startsWith('/') && msg.from) {
