@@ -5,13 +5,18 @@ import express from 'express';
 import { HeyGen } from "./HeyGen";
 import TelegramBot, { InlineKeyboardButton } from 'node-telegram-bot-api';
 import { Video } from './entity/Video';
+import OpenAI from 'openai';
+import { SubtitleGenerator } from './subtitles';
 
-
+export const openai = new OpenAI({
+    apiKey: process.env.OPENAI_KEY
+});
 
 AppDataSource.initialize().then(async () => {
     const manager = AppDataSource.manager;
     const app = express();
     const heygen = new HeyGen();
+    const subtitles = new SubtitleGenerator();
     const bot = new TelegramBot(process.env.TELEGRAM_TOKEN!, {
         polling: true
     })
@@ -31,7 +36,17 @@ AppDataSource.initialize().then(async () => {
         video.url = req.body.event_data.url;
         await manager.save(video);
         await bot.sendVideo(+req.body.event_data.callback_id, req.body.event_data.url, {
-            caption: 'Видео готово'
+            caption: 'Видео готово',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: 'Начать редактирование',
+                            callback_data: `edit-${video.id}`
+                        }
+                    ]
+                ]
+            }
         });
         res.status(200).end()
     });
@@ -106,6 +121,20 @@ AppDataSource.initialize().then(async () => {
                 await manager.save(user);
     
                 await bot.sendMessage(user.id, "Пришлите мне скрипт");
+                
+            }
+
+            if (q.data?.startsWith('edit-')) {
+                const id = q.data.substring(5);
+                const video = await manager.findOneBy(Video, {
+                    id
+                });
+                if (!video) throw new Error("Video not found");
+
+                await bot.sendMessage(q.from.id, 'Монтирую видео');
+                const result = await subtitles.generate(video.url);
+                await bot.sendMessage(q.from.id, 'Видео готово');
+                await bot.sendVideo(q.from.id, result);
                 
             }
         } catch (e) {
@@ -191,7 +220,7 @@ AppDataSource.initialize().then(async () => {
                 });
                 user.generating = false;
                 await manager.save(user);
-                await bot.sendMessage(user.id, 'Генерирую и монтирую видео');
+                await bot.sendMessage(user.id, 'Генерирую видео');
             }
         }
     });
