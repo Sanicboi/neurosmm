@@ -83,7 +83,7 @@ export class SubtitleGenerator {
 
     private writeASSToFile(ass: string, url: string): string {
         const name = path.basename(url);
-        const p = path.join(process.cwd(), 'audio', url)
+        const p = path.join(process.cwd(), 'audio', name)
         fs.writeFileSync(p, ass, 'utf-8');
         return p;
     }
