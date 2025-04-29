@@ -77,33 +77,38 @@ AppDataSource.initialize().then(async () => {
             await manager.save(user);
         }
 
-        const avatars = (await heygen.getAvatars()).slice(0, 10);
-        await bot.sendMediaGroup(msg.from.id,avatars.map<TelegramBot.InputMedia>(el => {return {
-            media: el.preview_image_url,
-            type: 'photo'
-        }}));
-        await bot.sendMessage(user.id, 'Выберите аватар', {
-            reply_markup: {
-                inline_keyboard: avatars.map<InlineKeyboardButton[]>((el, idx) => [{
-                    text: `#${idx+1}`,
-                    callback_data: `avatar-${el.avatar_id}`
-                }])
-            }
-        });
+        if (!user.avatarId || !user.voiceId) return await bot.sendMessage(user.id, 'Пожалуйста, перед генерацией выберите аватар и голос в меню настройки.');
+        
     });
 
     bot.on('callback_query', async (q) => {
         try {
-            console.log("I am here");
             const user = await manager.findOneBy(User, {
                 id: q.from.id
             });
             if (!user) return;
-            if (q.data?.startsWith('avatar-')) {
-                user.avatarId = q.data.substring(7);
-                await manager.save(user);
-                console.log('up to here');
-                const voices = (await heygen.getVoices()).slice(0, 10);
+
+            if (q.data === 'settings-avatars') {
+                const avatars = (await heygen.getAvatars()).slice(0, 15);
+                await bot.sendMediaGroup(q.from.id, avatars.map<TelegramBot.InputMedia>(el => {return {
+                    media: el.preview_image_url,
+                    type: 'photo'
+                }}));
+                await bot.sendMessage(user.id, 'Выберите аватар (идут по порядку слева направо, сверху вниз)', {
+                    reply_markup: {
+                        inline_keyboard: avatars.map<InlineKeyboardButton[]>((el, idx) => [{
+                            text: `#${idx+1}`,
+                            callback_data: `avatar-${el.avatar_id}`
+                        }])
+                    }
+                });
+            }
+
+            if (q.data === 'settings-voice') {
+                const voices = (await heygen.getVoices()).slice(0, 15);
+                for (const v of voices) {
+                    await bot.sendVoice(user.id, v.preview_audio);
+                }
                 await bot.sendMessage(user.id, 'Выберите голос', {
                     reply_markup: {
                         inline_keyboard: voices.map<InlineKeyboardButton[]>(el => [{
@@ -112,16 +117,21 @@ AppDataSource.initialize().then(async () => {
                         }])
                     }
                 });
+            }
+
+            if (q.data?.startsWith('avatar-')) {
+                user.avatarId = q.data.substring(7);
+                await manager.save(user);
+                await bot.sendMessage(user.id, 'Аватар выбран!');
     
     
             }
             if (q.data?.startsWith('voice-')) {
                 user.voiceId = q.data.substring(6);
-                user.generating = true;
                 await manager.save(user);
     
-                await bot.sendMessage(user.id, "Пришлите мне скрипт");
                 
+                await bot.sendMessage(user.id, 'Голос выбран!');
             }
 
             if (q.data?.startsWith('edit-')) {
@@ -161,7 +171,18 @@ AppDataSource.initialize().then(async () => {
         if (user.videos.length === 0) return await bot.sendMessage(user.id, 'У вас нет видео');
 
         for (const v of user.videos) {
-            await bot.sendVideo(user.id, v.file ?? v.url);
+            await bot.sendVideo(user.id, v.file ?? v.url, {
+                reply_markup: {
+                    inline_keyboard: v.file ? [] : [
+                        [
+                            {
+                                text: 'Начать редактирование',
+                                callback_data: `edit-${v.id}`
+                            }
+                        ]
+                    ]
+                }
+            });
         }
 
     });
