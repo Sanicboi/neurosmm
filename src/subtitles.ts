@@ -89,6 +89,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
     const name = path.basename(url);
     const p = path.join(process.cwd(), "audio", v4() + '.ass');
     fs.writeFileSync(p, ass, "utf-8");
+    console.log(p);
     return p;
   }
 
