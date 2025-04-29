@@ -88,13 +88,18 @@ export class SubtitleGenerator {
         return p;
     }
 
+    private bufferToStream(buffer: Buffer): Readable {
+            const readable = new Readable();
+            readable._read = () => {};
+            readable.push(buffer);
+            readable.push(null);
+            return readable;
+    }
+
     private async appendSubtitles(p: string, video: Buffer): Promise<Buffer> {
         let chunks: Uint8Array[] = [];
         const outStream = new PassThrough();
-        const inStream = new Readable();
-
-        inStream.push(video);
-        inStream.push(null);
+        const inStream = this.bufferToStream(video);
         outStream.on('data', chunk => {
             chunks.push(chunk)
             console.log(chunks.length)
@@ -111,7 +116,7 @@ export class SubtitleGenerator {
 
             ffmpeg()
             .input(inStream)
-            .inputFormat(path.extname(p).substring(1))
+            .inputFormat('mp4')
             .videoFilter(`ass=${p}`)
             .outputOptions([
                 '-movflags', 'frag_keyframe+empty_moov',
@@ -151,6 +156,8 @@ export class SubtitleGenerator {
         // styled subtitles
         const ass = this.generateASS(words);
         const filePath = this.writeASSToFile(ass, videoUrl);
+
+        console.log(video.length);
 
         // editing the video
         const edited = await this.appendSubtitles(filePath, video);
