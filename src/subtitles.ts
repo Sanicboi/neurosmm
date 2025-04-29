@@ -96,7 +96,10 @@ export class SubtitleGenerator {
         inStream.push(video);
         inStream.push(null);
         const result = await new Promise<Buffer>((resolve, reject) => {
-            outStream.on('data', chunk => chunks.push(chunk));
+            outStream.on('data', chunk => {
+                chunks.push(chunk)
+                console.log(chunks.length)
+        });
             outStream.on('error', reject)
             outStream.on('end', () => {
                 resolve(Buffer.concat(chunks))
@@ -106,6 +109,7 @@ export class SubtitleGenerator {
             .input(inStream)
             .videoFilter(`ass=${p}`)
             .output(outStream)
+            .outputFormat('mp4')
             .on('error', reject)
             .run();
         })
