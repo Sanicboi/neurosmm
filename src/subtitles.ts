@@ -80,7 +80,7 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,3,2,10,10,40,1
 
 [Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text` +
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text` + "\n" +
       lines.join("\n")
     );
   }
@@ -121,6 +121,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
         .input(inStream)
         .inputFormat("mp4")
         .videoFilter(`ass=${p}`)
+        .format('mp4')
         .outputOptions([
           "-movflags",
           "frag_keyframe+empty_moov",
@@ -134,7 +135,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
           "aac",
         ])
         .output(outStream)
-        .outputFormat("mp4")
         .on("error", (err) => {
           console.error("FFmpeg err", err);
           reject(err);
