@@ -9,26 +9,23 @@ import { v4 } from "uuid";
 export class SubtitleGenerator {
   constructor() {}
 
-  private async fetchVideo(url: string): Promise<Buffer> {
+  private async fetchVideo(url: string): Promise<string> {
     const res: AxiosResponse<Buffer> = await axios.get(url, {
       responseType: "arraybuffer",
     });
-    return res.data;
+    await fs.promises.writeFile(res.data, "./video.mp4");
+    return "./video.mp4";
   }
 
-  private async transcribe(
-    video: Buffer,
-    url: string
-  ): Promise<
+  private async transcribe(videoPath: string): Promise<
     {
       text: string;
       start: number;
       end: number;
     }[]
   > {
-    const file = new File([video], path.basename(url));
     const res = await openai.audio.transcriptions.create({
-      file,
+      file: fs.createReadStream(videoPath),
       model: "whisper-1",
       timestamp_granularities: ["word"],
       response_format: "verbose_json",
@@ -58,96 +55,84 @@ export class SubtitleGenerator {
       text: string;
       start: number;
       end: number;
-    }[]
+    }[],
+    dimensions: {
+      width: number;
+      height: number;
+    }
   ): string {
-    const lines = words.map((el) => {
-      return `Dialogue: 0,${this.formatTimeASS(el.start)},${this.formatTimeASS(
-        el.end
-      )},Default,,0,0,0,,${el.text}`;
-    });
+    const header = `
+  [Script Info]
+  ScriptType: v4.00+
+  PlayResX: ${dimensions.width}
+  PlayResY: ${dimensions.height}
+  Collisions: Normal
 
-    return (
-      `
-[Script Info]
-Title: StyledSubs
-ScriptType: v4.00+
-Collisions: Normal
-PlayResY: 1280
-PlayResX: 720
+  [V4+ Styles]
+  Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+  Style: Default,Helvetica,80,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,2,2,10,10,40,0
 
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,3,2,10,10,40,1
-
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text` + "\n" +
-      lines.join("\n")
-    );
+  [Events]
+  Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+  `;
+    const events = words
+      .map(
+        (s) =>
+          `Dialogue: 0,${this.formatTimeASS(s.start)},${this.formatTimeASS(
+            s.end
+          )},Default,,0,0,0,,${s.text.replace(/\n/g, "\\N")}`
+      )
+      .join("\n");
+    return header + "\n" + events;
   }
 
-  private writeASSToFile(ass: string, url: string): string {
+  private async getDimensions(file: string): Promise<{
+    width: number;
+    height: number;
+  }> {
+    return await new Promise<{
+      width: number;
+      height: number;
+    }>((resolve, reject) => {
+      ffmpeg.ffprobe(file, (err, metadata) => {
+        if (err) return reject(err);
+        const stream = metadata.streams.find((s) => s.codec_type === "video");
+        if (!stream) return reject(new Error("No video stream found"));
+        resolve({ width: stream.width!, height: stream.height! });
+      });
+    });
+  }
+
+  private async writeASSToFile(ass: string, url: string): Promise<string> {
     const name = path.basename(url);
-    const p = path.join(process.cwd(), "audio", v4() + '.ass');
-    fs.writeFileSync(p, ass, "utf-8");
-    console.log(p);
-    return p;
+    await fs.promises.writeFile('.temp.ass', ass, "utf-8");
+    return '.temp.ass';
   }
 
-  private bufferToStream(buffer: Buffer): Readable {
-    const readable = new Readable();
-    readable._read = () => {};
-    readable.push(buffer);
-    readable.push(null);
-    return readable;
-  }
-
-  private async appendSubtitles(p: string, video: Buffer): Promise<Buffer> {
-    let chunks: Uint8Array[] = [];
-    const outStream = new PassThrough();
-    const inStream = this.bufferToStream(video);
-    outStream.on("data", (chunk) => {
-      chunks.push(chunk);
-      console.log(chunks.length);
-    });
-    const result = await new Promise<Buffer>((resolve, reject) => {
-      outStream.on("error", (err) => {
-        console.error("Error", err);
-        reject(err);
-      });
-      outStream.on("end", () => {
-        resolve(Buffer.concat(chunks));
-      });
-
-      ffmpeg()
-        .input(inStream)
-        .inputFormat("mp4")
-        .videoFilter(`ass=${p}`)
-        .format('mp4')
-        .outputOptions([
-          "-movflags",
-          "frag_keyframe+empty_moov",
-          "-c:v",
-          "libx264",
-          "-preset",
-          "fast",
-          "-crf",
-          "23",
-          "-c:a",
-          "aac",
-        ])
-        .output(outStream)
-        .on("error", (err) => {
-          console.error("FFmpeg err", err);
-          reject(err);
-        })
-        .run();
+  private async appendSubtitles(videoPath: string, subtitlesPath: string): Promise<Buffer> {
+    await new Promise((resolve, reject) => {
+        ffmpeg()
+            .input(videoPath)
+            .videoFilters([
+                {
+                    filter: 'ass',
+                    options: subtitlesPath
+                }
+            ])
+            .outputOptions('-c:a copy')
+            .on('end', resolve)
+            .on('error', reject)
+            .output('output.mp4')
+            .run();
     });
 
-    return result;
+    const buf =  await fs.promises.readFile('output.mp4');
+    await this.cleanup('output.mp4');
+    return buf;
   }
 
-  private cleanup(p: string) {
-    fs.rmSync(p);
+  private async cleanup(p: string) {
+    await fs.promises.rm(p);
   }
 
   /**
@@ -156,22 +141,27 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
    */
   public async generate(videoUrl: string): Promise<Buffer> {
     // fetch the video
-    const video = await this.fetchVideo(videoUrl);
+    const file = await this.fetchVideo(videoUrl);
 
     // transcribe into words
-    const words = await this.transcribe(video, videoUrl);
+    const words = await this.transcribe(file);
+
+    // get the dimensions
+    const dimension = await this.getDimensions(file);
 
     // styled subtitles
-    const ass = this.generateASS(words);
-    const filePath = this.writeASSToFile(ass, videoUrl);
+    const ass = this.generateASS(words, dimension);
+    const filePath = await this.writeASSToFile(ass, videoUrl);
 
-    console.log(video.length);
+    
 
     // editing the video
-    const edited = await this.appendSubtitles(filePath, video);
+    const edited = await this.appendSubtitles(file, filePath);
 
-    // cleanup
-    this.cleanup(filePath);
+    await Promise.all([
+        async () => this.cleanup(file),
+        async () => this.cleanup(filePath)
+    ]);
 
     return edited;
   }
