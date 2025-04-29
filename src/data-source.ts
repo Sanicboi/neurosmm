@@ -5,8 +5,8 @@ import { Video } from "./entity/Video"
 
 export const AppDataSource = new DataSource({
     type: "postgres",
-    host: "localhost",
-    port: 6675,
+    host: "postgres",
+    port: 5432,
     username: "test",
     password: "test",
     database: "test",
