@@ -15,4 +15,9 @@ export class Video {
 
     @ManyToOne(() => User, (user) => user.videos)
     user: User;
+
+    @Column('bytea', {
+        nullable: true
+    })
+    file: Buffer;
 }

@@ -134,6 +134,8 @@ AppDataSource.initialize().then(async () => {
                 await bot.sendMessage(q.from.id, 'Монтирую видео');
                 const result = await subtitles.generate(video.url);
                 await bot.sendMessage(q.from.id, 'Видео готово');
+                video.file = result;
+                await manager.save(video);
                 await bot.sendVideo(q.from.id, result, {}, {
                     contentType: 'video/mp4'
                 });
@@ -159,7 +161,7 @@ AppDataSource.initialize().then(async () => {
         if (user.videos.length === 0) return await bot.sendMessage(user.id, 'У вас нет видео');
 
         for (const v of user.videos) {
-            await bot.sendVideo(user.id, v.url);
+            await bot.sendVideo(user.id, v.file ?? v.url);
         }
 
     });
