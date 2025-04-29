@@ -108,6 +108,13 @@ export class SubtitleGenerator {
             ffmpeg()
             .input(inStream)
             .videoFilter(`ass=${p}`)
+            .outputOptions([
+                '-movflags', 'frag_keyframe+empty_moov',
+                '-c:v', 'libx264',
+                '-preset', 'fast',
+                '-crf', '23',
+                '-c:a', 'aac'
+              ])
             .output(outStream)
             .outputFormat('mp4')
             .on('error', reject)
