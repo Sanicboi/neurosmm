@@ -134,7 +134,9 @@ AppDataSource.initialize().then(async () => {
                 await bot.sendMessage(q.from.id, 'Монтирую видео');
                 const result = await subtitles.generate(video.url);
                 await bot.sendMessage(q.from.id, 'Видео готово');
-                await bot.sendVideo(q.from.id, result);
+                await bot.sendVideo(q.from.id, result, {}, {
+                    contentType: 'video/mp4'
+                });
                 
             }
         } catch (e) {
