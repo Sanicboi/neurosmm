@@ -111,6 +111,7 @@ export class SubtitleGenerator {
 
             ffmpeg()
             .input(inStream)
+            .inputFormat(path.extname(p).substring(1))
             .videoFilter(`ass=${p}`)
             .outputOptions([
                 '-movflags', 'frag_keyframe+empty_moov',
