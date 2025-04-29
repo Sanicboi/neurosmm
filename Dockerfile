@@ -1,4 +1,4 @@
-FROM node:alpine
+FROM node
 WORKDIR /app
 RUN apt-get install -y ffmpeg
 COPY package*.json .
