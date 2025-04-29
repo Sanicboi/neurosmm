@@ -89,7 +89,7 @@ AppDataSource.initialize().then(async () => {
             if (!user) return;
 
             if (q.data === 'settings-avatars') {
-                const avatars = (await heygen.getAvatars()).slice(0, 15);
+                const avatars = (await heygen.getAvatars()).slice(0, 10);
                 await bot.sendMediaGroup(q.from.id, avatars.map<TelegramBot.InputMedia>(el => {return {
                     media: el.preview_image_url,
                     type: 'photo'
