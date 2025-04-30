@@ -9,6 +9,15 @@ export interface IAvatar {
     preview_video_url: string;
 }
 
+export interface ISingleAvatar {
+    id: string;
+    type: 'avatar';
+    name: string;
+    gender: string;
+    preview_video_url: string;
+    preview_image_url: string;
+}
+
 export interface IVoice {
     voice_id: string;
     language: string;
@@ -75,6 +84,15 @@ export class HeyGen {
             }
         });
         return res.data.data.avatars;
+    }
+
+    public async getAvatar(id: string): Promise<ISingleAvatar> {
+        const res: AxiosResponse<{data: ISingleAvatar}> = await axios.get('https://api.heygen.com/v2/avatar/avatar_id/details', {
+            headers: {
+                'x-api-key': this.token
+            }
+        });
+        return res.data.data;
     }
 
     public async getVoices(): Promise<IVoice[]> {

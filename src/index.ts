@@ -89,6 +89,27 @@ AppDataSource.initialize().then(async () => {
             if (!user) return;
 
             if (q.data === 'settings-avatars') {
+                await bot.sendMessage(user.id, 'Настройки автаров', {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: 'Текущий аватар',
+                                    callback_data: 'current-avatar'
+                                }
+                            ],
+                            [
+                                {
+                                    text: 'Все аватары',
+                                    callback_data: 'all-avatars'
+                                }
+                            ]
+                        ]
+                    }
+                })
+            }
+
+            if (q.data === 'all-avatars') {
                 const avatars = (await heygen.getAvatars()).slice(0, 10);
                 await bot.sendMediaGroup(q.from.id, avatars.map<TelegramBot.InputMedia>(el => {return {
                     media: el.preview_image_url,
@@ -104,7 +125,49 @@ AppDataSource.initialize().then(async () => {
                 });
             }
 
+            if (q.data === 'current-avatar') {
+                if (!user.avatarId) return await bot.sendMessage(user.id, 'У вас не выбран аватар', {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: 'Назад',
+                                    callback_data: 'settings-avatars'
+                                }
+                            ]
+                        ]
+                    }
+                })
+                const avatar = await heygen.getAvatar(user.avatarId);
+                await bot.sendVideo(user.id, avatar.preview_video_url, {
+                    caption: 'Текущий аватар ' + avatar.name 
+                });
+
+            }
+
             if (q.data === 'settings-voice') {
+                await bot.sendMessage(user.id, 'Настройки голоса', {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: 'Текущий голос',
+                                    callback_data: 'current-voice'
+                                }
+                            ],
+                            [
+                                {
+                                    text: 'Все голоса',
+                                    callback_data: 'all-voices'
+                                }
+                            ],
+                            
+                        ]
+                    }
+                });
+            }
+
+            if (q.data === 'all-voices') {
                 const voices = (await heygen.getVoices()).slice(0, 15);
                 for (const v of voices) {
                     await bot.sendVoice(user.id, v.preview_audio);
@@ -117,6 +180,23 @@ AppDataSource.initialize().then(async () => {
                         }])
                     }
                 });
+            }
+
+            if (q.data === 'current-voice') {
+                if (!user.voiceId) return await bot.sendMessage(user.id, 'Вы не выбрали голос', {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: 'Назад',
+                                    callback_data: 'settings-voice'
+                                }
+                            ]
+                        ]
+                    }
+                });
+
+                await bot.sendMessage(user.id, `ID голоса: ${user.voiceId}`);
             }
 
             if (q.data?.startsWith('avatar-')) {
