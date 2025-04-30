@@ -170,7 +170,7 @@ AppDataSource.initialize().then(async () => {
             if (q.data === 'all-voices') {
                 const voices = (await heygen.getVoices()).slice(0, 15);
                 for (const v of voices) {
-                    await bot.sendVoice(user.id, v.preview_audio);
+                    await bot.sendAudio(user.id, v.preview_audio);
                 }
                 await bot.sendMessage(user.id, 'Выберите голос', {
                     reply_markup: {
@@ -202,7 +202,18 @@ AppDataSource.initialize().then(async () => {
             if (q.data?.startsWith('avatar-')) {
                 user.avatarId = q.data.substring(7);
                 await manager.save(user);
-                await bot.sendMessage(user.id, 'Аватар выбран!');
+                await bot.sendMessage(user.id, 'Аватар выбран!',{
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: "Назад",
+                                    callback_data: "settings"
+                                }
+                            ]
+                        ]
+                    }
+                });
     
     
             }
@@ -211,7 +222,18 @@ AppDataSource.initialize().then(async () => {
                 await manager.save(user);
     
                 
-                await bot.sendMessage(user.id, 'Голос выбран!');
+                await bot.sendMessage(user.id, 'Голос выбран!', {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: "Назад",
+                                    callback_data: "settings"
+                                }
+                            ]
+                        ]
+                    }
+                });
             }
 
             if (q.data?.startsWith('edit-')) {
@@ -230,6 +252,33 @@ AppDataSource.initialize().then(async () => {
                     contentType: 'video/mp4'
                 });
                 
+            }
+
+            if (q.data === "settings") {
+                await bot.sendMessage(q.from.id, 'Настрйоки', {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: 'Настройки голоса',
+                                    callback_data: 'settings-voice'
+                                }
+                            ],
+                            [
+                                {
+                                    text: 'Настройки аватаров',
+                                    callback_data: 'settings-avatars'
+                                }
+                            ],
+                            // [
+                            //     {
+                            //         text: 'Настройки субтитров',
+                            //         callback_data: 'settings-subtitles'
+                            //     }
+                            // ]
+                        ]
+                    }
+                })
             }
         } catch (e) {
             console.error(e);
@@ -283,12 +332,12 @@ AppDataSource.initialize().then(async () => {
                             callback_data: 'settings-avatars'
                         }
                     ],
-                    [
-                        {
-                            text: 'Настройки субтитров',
-                            callback_data: 'settings-subtitles'
-                        }
-                    ]
+                    // [
+                    //     {
+                    //         text: 'Настройки субтитров',
+                    //         callback_data: 'settings-subtitles'
+                    //     }
+                    // ]
                 ]
             }
         })
