@@ -78,6 +78,9 @@ AppDataSource.initialize().then(async () => {
         }
 
         if (!user.avatarId || !user.voiceId) return await bot.sendMessage(user.id, 'Пожалуйста, перед генерацией выберите аватар и голос в меню настройки.');
+        user.generating = true;
+        await manager.save(user);
+        await bot.sendMessage(user.id, 'Пришлите мне скрипт');
         
     });
 
