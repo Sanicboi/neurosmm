@@ -13,7 +13,7 @@ export class SubtitleGenerator {
     const res: AxiosResponse<Buffer> = await axios.get(url, {
       responseType: "arraybuffer",
     });
-    await fs.promises.writeFile(res.data, "./video.mp4");
+    await fs.promises.writeFile("./video.mp4", res.data);
     return "./video.mp4";
   }
 
