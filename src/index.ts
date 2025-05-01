@@ -368,11 +368,12 @@ AppDataSource.initialize().then(async () => {
                             voice: {
                                 input_text: msg.text!,
                                 type: 'text',
-                                voice_id: user.voiceId
+                                voice_id: user.voiceId,
+                                speed: 0.8
                             }
                         }
                     ],
-                    caption: true,
+                    caption: false,
                     callback_id: String(user.id)
                 });
                 user.generating = false;
