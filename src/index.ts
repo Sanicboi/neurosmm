@@ -170,7 +170,7 @@ AppDataSource.initialize().then(async () => {
             if (q.data === 'all-voices') {
                 const voices = (await heygen.getVoices()).slice(0, 15);
                 for (const v of voices) {
-                    await bot.sendAudio(user.id, v.preview_audio);
+                    // await bot.sendAudio(user.id, v.preview_audio);
                 }
                 await bot.sendMessage(user.id, 'Выберите голос', {
                     reply_markup: {
