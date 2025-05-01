@@ -76,6 +76,25 @@ export class SubtitleGenerator {
   Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   `;
     const events = words
+    .reduce<{
+      text: string;
+      start: number;
+      end: number;
+    }[]>((a: {
+      text: string;
+      start: number;
+      end: number;
+    }[], el) => {
+      const idx = a.length - 1;
+      if (idx === -1 || !(a[idx].text.length < 7 && el.text.length < 7)) {
+        a.push(el);
+      } else {
+          a[idx].text += " " + el.text;
+          a[idx].end = el.end;
+      }
+
+      return a;
+    }, [])
       .map(
         (s) =>
           `Dialogue: 0,${this.formatTimeASS(s.start)},${this.formatTimeASS(
