@@ -83,6 +83,7 @@ export class HeyGen {
                 'x-api-key': this.token
             }
         });
+        console.log(res.data);
         return res.data.data.avatars;
     }
 
