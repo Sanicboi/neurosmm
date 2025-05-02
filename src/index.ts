@@ -124,7 +124,7 @@ AppDataSource.initialize().then(async () => {
                     reply_markup: {
                         inline_keyboard: avatars.map<InlineKeyboardButton[]>((el, idx) => [{
                             text: `#${idx+1}`,
-                            callback_data: `avatar-${el.avatar_id}`
+                            callback_data: `avatar-${el.type === 'avatar' ? el.avatar_id : el.talking_photo_id}`
                         }])
                     }
                 });

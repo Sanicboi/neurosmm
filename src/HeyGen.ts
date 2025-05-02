@@ -1,6 +1,7 @@
 import axios, { Axios, AxiosResponse } from "axios";
 
 export interface IAvatar {
+    type: 'avatar';
     avatar_id: string;
     avatar_name: string;
     gender: string;
@@ -15,6 +16,13 @@ export interface ISingleAvatar {
     name: string;
     gender: string;
     preview_video_url: string;
+    preview_image_url: string;
+}
+
+export interface ITalkingPhoto {
+    type: 'talking_photo'
+    talking_photo_id: string;
+    talking_photo_name: string;
     preview_image_url: string;
 }
 
@@ -73,10 +81,11 @@ export class HeyGen {
 
     }
 
-    public async getAvatars(): Promise<IAvatar[]> {
+    public async getAvatars(): Promise<(IAvatar | ITalkingPhoto)[]> {
         const res: AxiosResponse<{
             data: {
-                avatars: IAvatar[]
+                avatars: IAvatar[],
+                talking_photos: ITalkingPhoto[]
             }
         }> = await axios.get('https://api.heygen.com/v2/avatars', {
             headers: {
@@ -84,7 +93,20 @@ export class HeyGen {
             }
         });
         console.log(res.data);
-        return res.data.data.avatars;
+        let arr: (IAvatar | ITalkingPhoto)[] = [];
+        arr = arr.concat(res.data.data.avatars.map<IAvatar>(el => {
+            return {
+                ...el,
+                type: 'avatar'
+            }
+        }));
+        arr = arr.concat(res.data.data.talking_photos.map<ITalkingPhoto>(el => {
+            return {
+                ...el,
+                type: 'talking_photo'
+            }
+        }))
+        return arr;
     }
 
     public async getAvatar(id: string): Promise<ISingleAvatar> {
