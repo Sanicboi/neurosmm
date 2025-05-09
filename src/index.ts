@@ -7,6 +7,8 @@ import TelegramBot, { InlineKeyboardButton } from 'node-telegram-bot-api';
 import { Video } from './entity/Video';
 import OpenAI from 'openai';
 import { SubtitleGenerator } from './subtitles';
+import { Avatar } from './entity/Avatar';
+import { Voice } from './entity/Voice';
 
 export const openai = new OpenAI({
     apiKey: process.env.OPENAI_KEY
@@ -41,7 +43,7 @@ AppDataSource.initialize().then(async () => {
                 inline_keyboard: [
                     [
                         {
-                            text: 'Начать редактирование',
+                            text: 'Приступить к монтажу',
                             callback_data: `edit-${video.id}`
                         }
                     ]
@@ -68,227 +70,123 @@ AppDataSource.initialize().then(async () => {
 
     bot.onText(/\/generate/, async (msg) => {
         if (!msg.from) return;
-        let user = await manager.findOneBy(User, {
-            id: msg.from.id,
+        let user = await manager.findOne(User, {
+            where: {
+                id: msg.from.id,
+            },
+            relations: {
+                avatars: true
+            }
         });
+
         if (!user) {
             user = new User();
             user.id = msg.from.id;
             await manager.save(user);
         }
+        
 
-        if (!user.avatarId || !user.voiceId) return await bot.sendMessage(user.id, 'Пожалуйста, перед генерацией выберите аватар и голос в меню настройки.');
-        user.generating = true;
-        await manager.save(user);
-        await bot.sendMessage(user.id, 'Пришлите мне скрипт');
+        await bot.sendMessage(msg.from.id, 'Выберите аватар', {
+            reply_markup: {
+                inline_keyboard: user.avatars.map<InlineKeyboardButton[]>(el => [{
+                    text: el.name,
+                    callback_data:  `avatar-${el.id}`
+                }])
+            }
+        });
         
     });
 
     bot.on('callback_query', async (q) => {
-        try {
+        
+        if (q.data?.startsWith('avatar-')) {
+            const avatar = await manager.findOneBy(Avatar, {
+                id: +q.data.substring(7)
+            });
+            const user = await manager.findOne(User, {
+                where: {
+                    id: q.from.id,
+                },
+                relations: {
+                    voices: true
+                }
+            })
+            if (!avatar) return;
+            avatar.selected = true;
+            await manager.save(avatar);
+            if (!user) return;
+
+
+            await bot.sendMessage(q.from.id, `Аватар "${avatar.name}" выбран!`);
+            await bot.sendMessage(q.from.id, 'Выберите голос озвучки', {
+                reply_markup: {
+                    inline_keyboard: [...user?.voices.map<InlineKeyboardButton[]>(el => [{
+                        text: el.name,
+                        callback_data: `voice-${el.id}`
+                    }]), [{
+                        text: 'Назад',
+                        callback_data: 'generate'
+                    }]]
+                }
+            });
+        }
+
+        if (q.data?.startsWith('voice-')) {
+            const voice = await manager.findOneBy(Voice, {
+                id: +q.data.substring(6)
+            });
+            if (!voice) return;
+            voice.selected = true;
+            await manager.save(voice);
+
+            await bot.sendMessage(q.from.id, `Голос ${voice.name} выбран!`);
+            await bot.sendMessage(q.from.id, 'Выберите формат генерации', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: '720x1280',
+                                callback_data: `res-720-1280`
+                            }
+                        ],
+                        [
+                            {
+                                text: '1280x720',
+                                callback_data: `res-1280-720`
+                            }
+                        ],
+                        [
+                            {
+                                text: 'Назад',
+                                callback_data: 'select-voice'
+                            }
+                        ]
+                    ]
+                    
+                }
+            });
+        }
+
+        if (q.data?.startsWith('res-')) {
+            const spl = q.data.split('-');
+            const width = +spl[1];
+            const height = +spl[2];
             const user = await manager.findOneBy(User, {
                 id: q.from.id
             });
             if (!user) return;
-
-            if (q.data === 'settings-avatars') {
-                await bot.sendMessage(user.id, 'Настройки автаров', {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                {
-                                    text: 'Текущий аватар',
-                                    callback_data: 'current-avatar'
-                                }
-                            ],
-                            [
-                                {
-                                    text: 'Все аватары',
-                                    callback_data: 'all-avatars'
-                                }
-                            ]
-                        ]
-                    }
-                })
-            }
-
-            if (q.data === 'all-avatars') {
-                const res = await heygen.getAvatars();
-                const avatars = (res).slice(0, 10);
-                console.log(res);
-                await bot.sendMediaGroup(q.from.id, avatars.map<TelegramBot.InputMedia>(el => {return {
-                    media: el.preview_image_url,
-                    type: 'photo'
-                }}));
-                await bot.sendMessage(user.id, 'Выберите аватар (идут по порядку слева направо, сверху вниз)', {
-                    reply_markup: {
-                        inline_keyboard: avatars.map<InlineKeyboardButton[]>((el, idx) => [{
-                            text: `#${idx+1}`,
-                            callback_data: `avatar-${el.type === 'avatar' ? el.avatar_id : el.talking_photo_id}`
-                        }])
-                    }
-                });
-            }
-
-            if (q.data === 'current-avatar') {
-                if (!user.avatarId) return await bot.sendMessage(user.id, 'У вас не выбран аватар', {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                {
-                                    text: 'Назад',
-                                    callback_data: 'settings-avatars'
-                                }
-                            ]
-                        ]
-                    }
-                })
-                const avatar = await heygen.getAvatar(user.avatarId);
-                await bot.sendVideo(user.id, avatar.preview_video_url, {
-                    caption: 'Текущий аватар ' + avatar.name 
-                });
-
-            }
-
-            if (q.data === 'settings-voice') {
-                await bot.sendMessage(user.id, 'Настройки голоса', {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                {
-                                    text: 'Текущий голос',
-                                    callback_data: 'current-voice'
-                                }
-                            ],
-                            [
-                                {
-                                    text: 'Все голоса',
-                                    callback_data: 'all-voices'
-                                }
-                            ],
-                            
-                        ]
-                    }
-                });
-            }
-
-            if (q.data === 'all-voices') {
-                const voices = (await heygen.getVoices()).slice(0, 15);
-                for (const v of voices) {
-                    // await bot.sendAudio(user.id, v.preview_audio);
-                }
-                await bot.sendMessage(user.id, 'Выберите голос', {
-                    reply_markup: {
-                        inline_keyboard: voices.map<InlineKeyboardButton[]>(el => [{
-                            text: el.name,
-                            callback_data: `voice-${el.voice_id}`
-                        }])
-                    }
-                });
-            }
-
-            if (q.data === 'current-voice') {
-                if (!user.voiceId) return await bot.sendMessage(user.id, 'Вы не выбрали голос', {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                {
-                                    text: 'Назад',
-                                    callback_data: 'settings-voice'
-                                }
-                            ]
-                        ]
-                    }
-                });
-
-                await bot.sendMessage(user.id, `ID голоса: ${user.voiceId}`);
-            }
-
-            if (q.data?.startsWith('avatar-')) {
-                user.avatarId = q.data.substring(7);
-                await manager.save(user);
-                await bot.sendMessage(user.id, 'Аватар выбран!',{
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                {
-                                    text: "Назад",
-                                    callback_data: "settings"
-                                }
-                            ]
-                        ]
-                    }
-                });
-    
-    
-            }
-            if (q.data?.startsWith('voice-')) {
-                user.voiceId = q.data.substring(6);
-                await manager.save(user);
-    
-                
-                await bot.sendMessage(user.id, 'Голос выбран!', {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                {
-                                    text: "Назад",
-                                    callback_data: "settings"
-                                }
-                            ]
-                        ]
-                    }
-                });
-            }
-
-            if (q.data?.startsWith('edit-')) {
-                const id = q.data.substring(5);
-                const video = await manager.findOneBy(Video, {
-                    id
-                });
-                if (!video) throw new Error("Video not found");
-
-                await bot.sendMessage(q.from.id, 'Монтирую видео');
-                const result = await subtitles.generate(video.url);
-                await bot.sendMessage(q.from.id, 'Видео готово');
-                video.file = result;
-                await manager.save(video);
-                await bot.sendVideo(q.from.id, result, {}, {
-                    contentType: 'video/mp4'
-                });
-                
-            }
-
-            if (q.data === "settings") {
-                await bot.sendMessage(q.from.id, 'Настрйоки', {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                {
-                                    text: 'Настройки голоса',
-                                    callback_data: 'settings-voice'
-                                }
-                            ],
-                            [
-                                {
-                                    text: 'Настройки аватаров',
-                                    callback_data: 'settings-avatars'
-                                }
-                            ],
-                            // [
-                            //     {
-                            //         text: 'Настройки субтитров',
-                            //         callback_data: 'settings-subtitles'
-                            //     }
-                            // ]
-                        ]
-                    }
-                })
-            }
-        } catch (e) {
-            console.error(e);
+            user.resWidth = width;
+            user.resHeight = height;
+            user.generating = true;
+            await manager.save(user);
+            await bot.sendMessage(user.id, 'Разрешение выбрано!');
+            await bot.sendMessage(user.id, 'Для генерации пришлите мне скрипт видео.');
         }
- 
+
+        if (q.data?.startsWith('edit-')) {
+            const id = q.data.substring(5);
+            await bot
+        }
         
     });
 
@@ -351,36 +249,48 @@ AppDataSource.initialize().then(async () => {
     bot.onText(/./, async (msg) => {
         if (!msg.text?.startsWith('/') && msg.from) {
             const user = await manager.findOneBy(User, {
-                id: msg.from.id
+                id: msg.from!.id
             });
-            if (!user) return;
+            if (user?.generating) {
+                await bot.sendMessage(user.id, 'Приступил к генерации');
+                user.generating = false;
+                await manager.save(user);
+                const avatar = await manager.findOne(Avatar, {
+                    where: {
+                        selected: true,
+                        user
+                    }
+                });
+                const voice = await manager.findOne(Voice, {
+                    where: {
+                        user,
+                        selected: true
+                    }
+                });
+                if (!avatar || !voice) return;
 
-            if (user.generating) {
                 await heygen.generateVideo({
                     dimension: {
-                        height: 1280,
-                        width: 720
+                        height: user.resHeight,
+                        width: user.resWidth
                     },
                     video_inputs: [
                         {
                             character: {
-                                avatar_id: user.avatarId,
                                 type: 'avatar',
+                                avatar_id: avatar.heygenId,
+                                avatar_style: 'normal',
                             },
                             voice: {
-                                input_text: msg.text!,
                                 type: 'text',
-                                voice_id: user.voiceId,
-                                speed: 0.8
+                                input_text: msg.text!,
+                                voice_id: voice.heygenId,
                             }
                         }
                     ],
                     caption: false,
                     callback_id: String(user.id)
                 });
-                user.generating = false;
-                await manager.save(user);
-                await bot.sendMessage(user.id, 'Генерирую видео');
             }
         }
     });

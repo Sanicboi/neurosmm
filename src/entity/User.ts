@@ -1,5 +1,7 @@
 import { Entity, Column, PrimaryColumn, OneToMany } from "typeorm"
 import { Video } from "./Video";
+import { Avatar } from "./Avatar";
+import { Voice } from "./Voice";
 
 @Entity()
 export class User {
@@ -12,15 +14,22 @@ export class User {
     })
     generating: boolean;
 
-    @Column({
-        default: ''
-    })
-    avatarId: string;
+    @OneToMany(() => Avatar, (avatar) => avatar.user)
+    avatars: Avatar[];
+
+    @OneToMany(() => Voice, (voice) => voice.user)
+    voices: Voice[];
+
 
     @Column({
-        default: ''
+        default: 720
     })
-    voiceId: string;
+    resWidth: number;
+
+    @Column({
+        default: 1280
+    })
+    resHeight: number;
 
     @OneToMany(() => Video, (video) => video.user)
     videos: Video[];    
