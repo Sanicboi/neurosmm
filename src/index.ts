@@ -238,7 +238,144 @@ AppDataSource.initialize().then(async () => {
                 filename: 'video.mp4'
             });
         }
+
+        if (q.data === 'settings-voice') {
+            await bot.sendMessage(q.from.id, 'Настройки голоса', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Текущие голоса',
+                                callback_data: 'current-voices'
+                            }
+                        ],
+                        [
+                            {
+                                text: 'Добавить голос',
+                                callback_data: 'add-voice'
+                            }
+                        ]
+                    ]
+                }
+            });
+            
+        }   
         
+        if (q.data === 'add-voice') {
+            await bot.sendMessage(q.from.id, 'Откуда вы хотит добавить голос?', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Из HeyGen',
+                                callback_data: 'voicefrom-heygen'
+                            }
+                        ],
+                        [
+                            {
+                                text: 'Клонировать голос',
+                                callback_data: 'voicefrom-clone'
+                            }
+                        ]
+                    ]
+                }
+            });
+        }
+
+        if (q.data === 'voicefrom-heygen' || q.data?.startsWith('voicefrom-heygen-')) {
+            let pageN = 1;
+            if (q.data !== 'voicefrom-heygen') pageN = +q.data.substring(16);
+            const all = await heygen.getVoices();
+            const voices = (all).slice(0 * (pageN - 1), Math.min(10 * pageN, all.length));
+            await bot.sendMessage(q.from.id, `Доступные голоса:\n${voices.map<string>(el => el.name).join('\n')}`, {
+                reply_markup: {
+                    inline_keyboard: [
+                        ...voices.map<InlineKeyboardButton[]>(el => [{
+                        text: el.name,
+                        callback_data: `setvoice-${el.voice_id}`
+                    }]),
+                    all.length > (pageN * 10) ? [] : [{
+                        text: 'Следующая страница',
+                        callback_data: `voicefrom-heygen-${pageN + 1}`
+                    }],
+                    pageN === 1 ? [] : [{
+                        text: 'Предыдущая страница',
+                        callback_data: `voicefrom-heygen-${pageN - 1}`
+                    }]
+                ]
+                }
+            });
+        }
+
+        if (q.data?.startsWith('setvoice-')) {
+            const user = await manager.findOneBy(User, {
+                id: q.from.id
+            });
+            if (!user) return;
+            const id = q.data.substring(9);
+            const voices = await heygen.getVoices();
+            const voice = voices.find(el => el.voice_id === id)!;
+            const v = new Voice();
+            v.heygenId = id;
+            v.name = voice.name;
+            v.selected = false;
+            v.user = user;
+            await manager.save(v);
+            await bot.sendMessage(user.id, 'Голос добавлен', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Назад',
+                                callback_data: 'settings-voice'
+                            }
+                        ]
+                    ]
+                }
+            });
+        }
+
+        if (q.data === 'current-voices') {
+            const user = await manager.findOne(User, {
+                where: {
+                    id: q.from.id
+                },
+                relations: {
+                    voices: true
+                }
+            });
+            if (!user) return;
+            await bot.sendMessage(q.from.id, 'Ваши голоса', {
+                reply_markup: {
+                    inline_keyboard: user.voices.map<InlineKeyboardButton[]>(el => [{
+                        text: el.name,
+                        callback_data: `getvoice-${el.id}`
+                    }])
+                }
+            })
+        }
+
+        if (q.data?.startsWith('getvoice-')) {
+            const voices = await heygen.getVoices();
+            const v = await manager.findOneBy(Voice, {
+                id: +q.data.substring(9)
+            });
+            if (!v) return;
+            const voice = voices.find(el => el.voice_id === v.heygenId)!;
+            await bot.sendAudio(q.from.id, voice.preview_audio, {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Удалить голос',
+                                callback_data: 'delete-voice'
+                            }
+                        ]
+                    ]
+                }
+            });
+            
+        }
     });
 
     bot.onText(/\/archive/, async (msg) => {
@@ -271,7 +408,7 @@ AppDataSource.initialize().then(async () => {
     });
 
     bot.onText(/\/settings/, async (msg) => {
-        await bot.sendMessage(msg.from!.id, 'Настрйоки', {
+        await bot.sendMessage(msg.from!.id, 'Выберите раздел, который необходимо настроить', {
             reply_markup: {
                 inline_keyboard: [
                     [
@@ -286,15 +423,15 @@ AppDataSource.initialize().then(async () => {
                             callback_data: 'settings-avatars'
                         }
                     ],
-                    // [
-                    //     {
-                    //         text: 'Настройки субтитров',
-                    //         callback_data: 'settings-subtitles'
-                    //     }
-                    // ]
+                    [
+                        {
+                            text: 'Настройки субтитров',
+                            callback_data: 'settings-subtitles'
+                        }
+                    ]
                 ]
             }
-        })
+        });
     })
 
     bot.onText(/./, async (msg) => {
