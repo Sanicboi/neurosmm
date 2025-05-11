@@ -110,7 +110,7 @@ export class HeyGen {
     }
 
     public async getAvatar(id: string): Promise<ISingleAvatar> {
-        const res: AxiosResponse<{data: ISingleAvatar}> = await axios.get('https://api.heygen.com/v2/avatar/avatar_id/details', {
+        const res: AxiosResponse<{data: ISingleAvatar}> = await axios.get(`https://api.heygen.com/v2/avatar/${id}/details`, {
             headers: {
                 'x-api-key': this.token
             }
