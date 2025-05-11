@@ -404,10 +404,7 @@ AppDataSource.initialize().then(async () => {
                     inline_keyboard: avatars.map<InlineKeyboardButton[]>(el => el.type === 'avatar' ? [{
                         text: el.avatar_name,
                         callback_data: `setavatar-${el.avatar_id}`
-                    }] : [{
-                        text: el.talking_photo_name,
-                        callback_data: `setavatar-${el.talking_photo_id}`
-                    }])
+                    }] : [])
                 }
             });
         }
