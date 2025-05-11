@@ -374,7 +374,108 @@ AppDataSource.initialize().then(async () => {
                     ]
                 }
             });
-            
+        }
+
+        if (q.data === 'settings-avatars') {
+            await bot.sendMessage(q.from.id, 'Настройки аватара', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Текущие аватары',
+                                callback_data: 'current-avatars'
+                            }
+                        ],
+                        [
+                            {
+                                text: 'Добавить аватар',
+                                callback_data: 'add-avatar'
+                            }
+                        ]
+                    ]
+                }
+            })
+        }
+
+        if (q.data === 'add-avatar') {
+            const avatars = (await heygen.getAvatars()).slice(0, 15);
+            await bot.sendMessage(q.from.id, `Выберите аватара\n${avatars.map(el => el.type === 'avatar' ? el.avatar_name : el.talking_photo_name).join('\n')}`, {
+                reply_markup: {
+                    inline_keyboard: avatars.map<InlineKeyboardButton[]>(el => el.type === 'avatar' ? [{
+                        text: el.avatar_name,
+                        callback_data: `setavatar-${el.avatar_id}`
+                    }] : [{
+                        text: el.talking_photo_name,
+                        callback_data: `setavatar-${el.talking_photo_id}`
+                    }])
+                }
+            });
+        }
+
+        if (q.data?.startsWith('setavatar-')) {
+            const id = q.data.substring(10);
+            const user = await manager.findOneBy(User, {
+                id: q.from.id
+            });
+            if (!user) return; 
+            const avatar = await heygen.getAvatar(id);
+            const a = new Avatar();
+            a.user = user;
+            a.heygenId = id;
+            a.selected = false;
+            a.name = avatar.name;
+            await manager.save(a);
+
+            await bot.sendMessage(user.id, 'Аватар добавлен!', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Назад',
+                                callback_data: 'settings-avatars'
+                            }
+                        ]
+                    ]
+                }
+            });
+        }
+
+        if (q.data === 'current-avatars') {
+            const user = await manager.findOne(User, {
+                where: {
+                    id: q.from.id
+                },
+                relations: {
+                    avatars: true
+                }
+            });
+            if (!user) return;
+
+            await bot.sendMessage(user.id, 'Ваши аватары', {
+                reply_markup: {
+                    inline_keyboard: user.avatars.map<InlineKeyboardButton[]>(el => [{
+                        text: el.name,
+                        callback_data: `getavatar-${el.id}`
+                    }])
+                }
+            });
+        }
+
+
+        if (q.data?.startsWith('getavatar-')) {
+            const avatar = await manager.findOneBy(Avatar, {
+                id: +q.data.substring(10)
+            });
+            if (!avatar) return;
+
+            const a = await heygen.getAvatar(avatar.heygenId);
+            await bot.sendVideo(q.from.id, a.preview_video_url, {
+                caption: 'Аватар'
+            });
+        }
+
+        if (q.data === 'settings-subtitles') {
+            // TODO
         }
     });
 
