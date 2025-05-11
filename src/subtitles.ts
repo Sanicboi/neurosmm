@@ -5,15 +5,20 @@ import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 import { PassThrough, Readable, Writable } from "stream";
 import { v4 } from "uuid";
+import { Subtitles } from "./entity/Subtitles";
 
 export class SubtitleGenerator {
   constructor() {}
 
-  private async fetchVideo(url: string): Promise<string> {
-    const res: AxiosResponse<Buffer> = await axios.get(url, {
+  private async fetchVideo(url: string | Buffer): Promise<string> {
+    if (typeof url === 'string') {
+      const res: AxiosResponse<Buffer> = await axios.get(url, {
       responseType: "arraybuffer",
-    });
-    await fs.promises.writeFile("./video.mp4", res.data);
+      });
+      await fs.promises.writeFile("./video.mp4", res.data);
+    } else {
+      await fs.promises.writeFile("./video.mp4", url);
+    }
     return "./video.mp4";
   }
 
@@ -59,7 +64,8 @@ export class SubtitleGenerator {
     dimensions: {
       width: number;
       height: number;
-    }
+    },
+    subtitles: Subtitles
   ): string {
     const header = `
   [Script Info]
@@ -70,7 +76,7 @@ export class SubtitleGenerator {
 
   [V4+ Styles]
   Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-  Style: Default,Helvetica,80,&H00FFFFFF,&HFFFFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,2,2,10,10,40,0
+  Style: Default,${subtitles.fontFamily},${subtitles.fontSize},&H${subtitles.color},&HFFFFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,2,2,${subtitles.marginL},${subtitles.marginR},${subtitles.marginV},0
 
   [Events]
   Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -122,8 +128,7 @@ export class SubtitleGenerator {
     });
   }
 
-  private async writeASSToFile(ass: string, url: string): Promise<string> {
-    const name = path.basename(url);
+  private async writeASSToFile(ass: string): Promise<string> {
     await fs.promises.writeFile('.temp.ass', ass, "utf-8");
     return '.temp.ass';
   }
@@ -158,7 +163,7 @@ export class SubtitleGenerator {
    * Fetches the video and embeds the subtitles into it
    * @param videoUrl
    */
-  public async generate(videoUrl: string): Promise<Buffer> {
+  public async generate(videoUrl: string | Buffer, subtitles: Subtitles): Promise<Buffer> {
     // fetch the video
     const file = await this.fetchVideo(videoUrl);
 
@@ -169,8 +174,8 @@ export class SubtitleGenerator {
     const dimension = await this.getDimensions(file);
 
     // styled subtitles
-    const ass = this.generateASS(words, dimension);
-    const filePath = await this.writeASSToFile(ass, videoUrl);
+    const ass = this.generateASS(words, dimension, subtitles);
+    const filePath = await this.writeASSToFile(ass);
 
     
 

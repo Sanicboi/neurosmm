@@ -1,5 +1,6 @@
-import { Column, Entity, ManyToOne, PrimaryColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
 import { User } from "./User";
+import { Subtitles } from "./Subtitles";
 
 
 
@@ -15,6 +16,14 @@ export class Video {
 
     @ManyToOne(() => User, (user) => user.videos)
     user: User;
+
+    @ManyToOne(() => Subtitles, (subtitles) => subtitles.videos)
+    subtitles: Subtitles;
+
+    @Column({
+        default: false
+    })
+    active: boolean;
 
     @Column('bytea', {
         nullable: true

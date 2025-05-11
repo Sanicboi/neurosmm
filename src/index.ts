@@ -9,6 +9,7 @@ import OpenAI from 'openai';
 import { SubtitleGenerator } from './subtitles';
 import { Avatar } from './entity/Avatar';
 import { Voice } from './entity/Voice';
+import axios from 'axios';
 
 export const openai = new OpenAI({
     apiKey: process.env.OPENAI_KEY
@@ -18,7 +19,7 @@ AppDataSource.initialize().then(async () => {
     const manager = AppDataSource.manager;
     const app = express();
     const heygen = new HeyGen();
-    const subtitles = new SubtitleGenerator();
+    const subtitleGenerator = new SubtitleGenerator();
     const bot = new TelegramBot(process.env.TELEGRAM_TOKEN!, {
         polling: true
     })
@@ -36,6 +37,9 @@ AppDataSource.initialize().then(async () => {
         video.user = new User();
         video.user.id = +req.body.event_data.callback_id;
         video.url = req.body.event_data.url;
+        video.file = (await axios.get(video.url, {
+            responseType: 'arraybuffer'
+        })).data;
         await manager.save(video);
         await bot.sendVideo(+req.body.event_data.callback_id, req.body.event_data.url, {
             caption: 'Видео готово',
@@ -185,7 +189,54 @@ AppDataSource.initialize().then(async () => {
 
         if (q.data?.startsWith('edit-')) {
             const id = q.data.substring(5);
-            await bot
+            const video = await manager.findOne(Video, {
+                where: {
+                    id: id
+                },
+                relations: {
+                    user: {
+                        subtitles: true
+                    }
+                }
+            });
+            if (!video) return;
+            video.active = true;
+            await manager.save(video);
+            await bot.sendMessage(q.from.id, 'Выберите субтитры', {
+                reply_markup: {
+                    inline_keyboard: video.user.subtitles.map<InlineKeyboardButton[]>(el => [{
+                        text: el.name,
+                        callback_data: `subtitles-${el.id}`
+                    }])
+                }
+            });
+        }
+
+        if (q.data?.startsWith('subtitles-')) {
+            const id = +q.data.substring(10);
+            const user = await manager.findOne(User, {
+                where: {
+                    id: q.from.id
+                },
+                relations: {
+                    subtitles: true,
+                    videos: true
+                }
+            });
+            if (!user) return;
+            const currentVideo = user.videos.find(el => el.active)!;
+            const subtitles = user.subtitles.find(el => el.id === id)!;
+            currentVideo.subtitles = subtitles;
+            await manager.save(currentVideo);
+            const res = await subtitleGenerator.generate(currentVideo.file, currentVideo.subtitles);
+            currentVideo.file = res;
+            await manager.save(currentVideo);
+            await bot.sendVideo(user.id, currentVideo.file, {
+                caption: 'Ваше видео'
+            }, {
+                contentType: 'video/mpeg',
+                filename: 'video.mp4'
+            });
         }
         
     });

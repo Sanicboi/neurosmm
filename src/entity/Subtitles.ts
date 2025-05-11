@@ -1,4 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { User } from "./User";
+import { Video } from "./Video";
 
 
 @Entity()
@@ -7,6 +9,9 @@ export class Subtitles {
 
     @PrimaryGeneratedColumn()
     id: number;
+
+    @Column()
+    name: string;
 
     @Column({
         default: 16
@@ -37,4 +42,11 @@ export class Subtitles {
         default: 40
     })
     marginV: number;
+    
+
+    @ManyToOne(() => User, (user) => user.subtitles)
+    user: User;
+    
+    @OneToMany(() => Video, (video) => video.subtitles)
+    videos: Video[];
 }

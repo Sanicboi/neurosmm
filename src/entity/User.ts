@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryColumn, OneToMany } from "typeorm"
 import { Video } from "./Video";
 import { Avatar } from "./Avatar";
 import { Voice } from "./Voice";
+import { Subtitles } from "./Subtitles";
 
 @Entity()
 export class User {
@@ -32,6 +33,9 @@ export class User {
     resHeight: number;
 
     @OneToMany(() => Video, (video) => video.user)
-    videos: Video[];    
+    videos: Video[];
+    
+    @OneToMany(() => Subtitles, (subtitles) => subtitles.user)
+    subtitles: Subtitles[];
 
 }
