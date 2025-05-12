@@ -87,6 +87,26 @@ AppDataSource.initialize().then(async () => {
             user = new User();
             user.id = msg.from.id;
             await manager.save(user);
+            const avatars = (await heygen.getAvatars()).filter(el => el.type === 'avatar');
+            const voices = await heygen.getVoices();
+
+            await bot.sendMessage(user.id, 'Собираю аватары и голоса...');
+
+            for (const avatar of avatars) {
+                const a = new Avatar();
+                a.heygenId = avatar.avatar_id;
+                a.name = avatar.avatar_name;
+                a.user = user;
+                await manager.save(a);
+            }
+
+            for (const voice of voices) {
+                const v = new Voice();
+                v.heygenId = voice.voice_id;
+                v.name = voice.name;
+                v.user = user;
+                await manager.save(v);
+            }
         }
         
 
