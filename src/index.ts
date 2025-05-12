@@ -87,7 +87,7 @@ AppDataSource.initialize().then(async () => {
             user = new User();
             user.id = msg.from.id;
             await manager.save(user);
-            const avatars = (await heygen.getAvatars()).filter(el => el.type === 'avatar');
+            const avatars = (await heygen.getAvatars()).filter(el => el.type === 'avatar').filter(el => el.avatar_name.toLowerCase().includes('thomas') || el.avatar_name.toLowerCase().includes('ashley'));
             const voices = await heygen.getVoices();
 
             await bot.sendMessage(user.id, 'Собираю аватары и голоса...');
