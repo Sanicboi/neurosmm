@@ -289,26 +289,26 @@ AppDataSource.initialize().then(async () => {
             
         }   
         
-        if (q.data === 'add-voice') {
-            await bot.sendMessage(q.from.id, 'Откуда вы хотит добавить голос?', {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: 'Из HeyGen',
-                                callback_data: 'voicefrom-heygen'
-                            }
-                        ],
-                        [
-                            {
-                                text: 'Клонировать голос',
-                                callback_data: 'voicefrom-clone'
-                            }
-                        ]
-                    ]
-                }
-            });
-        }
+        // if (q.data === 'add-voice') {
+        //     await bot.sendMessage(q.from.id, 'Откуда вы хотит добавить голос?', {
+        //         reply_markup: {
+        //             inline_keyboard: [
+        //                 [
+        //                     {
+        //                         text: 'Из HeyGen',
+        //                         callback_data: 'voicefrom-heygen'
+        //                     }
+        //                 ],
+        //                 [
+        //                     {
+        //                         text: 'Клонировать голос',
+        //                         callback_data: 'voicefrom-clone'
+        //                     }
+        //                 ]
+        //             ]
+        //         }
+        //     });
+        // }
 
         if (q.data === 'voicefrom-heygen' || q.data?.startsWith('voicefrom-heygen-')) {
             let pageN = 1;
@@ -425,17 +425,17 @@ AppDataSource.initialize().then(async () => {
             })
         }
 
-        if (q.data === 'add-avatar') {
-            const avatars = (await heygen.getAvatars()).slice(0, 15);
-            await bot.sendMessage(q.from.id, `Выберите аватара\n${avatars.map(el => el.type === 'avatar' ? el.avatar_name : el.talking_photo_name).join('\n')}`, {
-                reply_markup: {
-                    inline_keyboard: avatars.map<InlineKeyboardButton[]>(el => el.type === 'avatar' ? [{
-                        text: el.avatar_name,
-                        callback_data: `setavatar-${el.avatar_id}`
-                    }] : [])
-                }
-            });
-        }
+        // if (q.data === 'add-avatar') {
+        //     const avatars = (await heygen.getAvatars()).slice(0, 15);
+        //     await bot.sendMessage(q.from.id, `Выберите аватара\n${avatars.map(el => el.type === 'avatar' ? el.avatar_name : el.talking_photo_name).join('\n')}`, {
+        //         reply_markup: {
+        //             inline_keyboard: avatars.map<InlineKeyboardButton[]>(el => el.type === 'avatar' ? [{
+        //                 text: el.avatar_name,
+        //                 callback_data: `setavatar-${el.avatar_id}`
+        //             }] : [])
+        //         }
+        //     });
+        // }
 
         if (q.data?.startsWith('setavatar-')) {
             const id = q.data.substring(10);
