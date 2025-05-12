@@ -10,6 +10,7 @@ import { SubtitleGenerator } from './subtitles';
 import { Avatar } from './entity/Avatar';
 import { Voice } from './entity/Voice';
 import axios from 'axios';
+import { Subtitles } from './entity/Subtitles';
 
 export const openai = new OpenAI({
     apiKey: process.env.OPENAI_KEY
@@ -87,8 +88,8 @@ AppDataSource.initialize().then(async () => {
             user = new User();
             user.id = msg.from.id;
             await manager.save(user);
-            const avatars = (await heygen.getAvatars()).filter(el => el.type === 'avatar');
-            const voices = await heygen.getVoices();
+            const avatars = (await heygen.getAvatars()).filter(el => el.type === 'avatar').slice(0, 15);
+            const voices = (await heygen.getVoices()).slice(0, 15);
 
             await bot.sendMessage(user.id, 'Собираю аватары и голоса...');
 
@@ -107,6 +108,13 @@ AppDataSource.initialize().then(async () => {
                 v.user = user;
                 await manager.save(v);
             }
+
+            const s = new Subtitles();
+            s.color = '000000FF';
+            s.fontFamily = 'Helvetica';
+            s.name = 'По умолчанию';
+            s.user = user;
+            await manager.save(s);
         }
         
 
