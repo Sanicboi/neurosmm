@@ -18,6 +18,11 @@ export class Avatar {
     })
     selected: boolean;
 
+    @Column({
+        default: ''
+    })
+    imageUrl: string;
+
     @ManyToOne(() => User, (user) => user.avatars)
     user: User;
 }

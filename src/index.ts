@@ -30,9 +30,8 @@ AppDataSource.initialize().then(async () => {
     const sendWidgetAvatars = async (user: User, start: string) => {
         let media: InputMedia[] = [];
         for (const a of user.avatars) {
-            const av = await heygen.getAvatar(a.heygenId);
             media.push({
-                media: av.preview_image_url,
+                media: a.imageUrl,
                 type: 'photo'
             });
         }
@@ -110,7 +109,7 @@ AppDataSource.initialize().then(async () => {
         if (!user) {
             user = new User();
             user.id = msg.from.id;
-	    user.avatars = [];
+	        user.avatars = [];
             await manager.save(user);
             const avatars = (await heygen.getAvatars()).filter(el => el.type === 'avatar').slice(0, 10);
             const voices = (await heygen.getVoices()).slice(0, 10);
@@ -123,7 +122,8 @@ AppDataSource.initialize().then(async () => {
                 a.heygenId = avatar.avatar_id;
                 a.name = avatar.avatar_name;
                 a.user = user;
-		user.avatars.push(a);
+                a.imageUrl = avatar.preview_image_url;
+		        user.avatars.push(a);
                 await manager.save(a);
             }
 
