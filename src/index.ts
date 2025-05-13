@@ -3,7 +3,7 @@ import { AppDataSource } from "./data-source"
 import { User } from "./entity/User"
 import express from 'express';
 import { HeyGen } from "./HeyGen";
-import TelegramBot, { InlineKeyboardButton } from 'node-telegram-bot-api';
+import TelegramBot, { InlineKeyboardButton, InputMedia } from 'node-telegram-bot-api';
 import { Video } from './entity/Video';
 import OpenAI from 'openai';
 import { SubtitleGenerator } from './subtitles';
@@ -16,6 +16,8 @@ export const openai = new OpenAI({
     apiKey: process.env.OPENAI_KEY
 });
 
+
+
 AppDataSource.initialize().then(async () => {
     const manager = AppDataSource.manager;
     const app = express();
@@ -24,6 +26,27 @@ AppDataSource.initialize().then(async () => {
     const bot = new TelegramBot(process.env.TELEGRAM_TOKEN!, {
         polling: true
     })
+
+    const sendWidgetAvatars = async (user: User, start: string) => {
+        let media: InputMedia[] = [];
+        for (const a of user.avatars) {
+            const av = await heygen.getAvatar(a.heygenId);
+            media.push({
+                media: av.preview_image_url,
+                type: 'photo'
+            });
+        }
+
+        await bot.sendMediaGroup(user.id, media);
+        await bot.sendMessage(user.id, 'Выберите аватар', {
+            reply_markup: {
+                inline_keyboard: user.avatars.map<InlineKeyboardButton[]>(el => [{
+                    text: el.name,
+                    callback_data: start + el.id 
+                }])
+            }
+        });
+    }
     app.use(express.json());
     app.post('/webhook', async (req: express.Request<any, any, {
         event_type: 'avatar_video.success',
@@ -89,8 +112,8 @@ AppDataSource.initialize().then(async () => {
             user.id = msg.from.id;
 	    user.avatars = [];
             await manager.save(user);
-            const avatars = (await heygen.getAvatars()).filter(el => el.type === 'avatar').slice(0, 15);
-            const voices = (await heygen.getVoices()).slice(0, 15);
+            const avatars = (await heygen.getAvatars()).filter(el => el.type === 'avatar').slice(0, 10);
+            const voices = (await heygen.getVoices()).slice(0, 10);
 
             await bot.sendMessage(user.id, 'Собираю аватары и голоса...');
 
@@ -120,23 +143,15 @@ AppDataSource.initialize().then(async () => {
             await manager.save(s);
         }
         
-
-        await bot.sendMessage(msg.from.id, 'Выберите аватар', {
-            reply_markup: {
-                inline_keyboard: user.avatars.map<InlineKeyboardButton[]>(el => [{
-                    text: el.name,
-                    callback_data:  `avatar-${el.id}`
-                }])
-            }
-        });
+        await sendWidgetAvatars(user, 'genavatar-')
         
     });
 
     bot.on('callback_query', async (q) => {
         
-        if (q.data?.startsWith('avatar-')) {
+        if (q.data?.startsWith('genavatar-')) {
             const avatar = await manager.findOneBy(Avatar, {
-                id: +q.data.substring(7)
+                id: +q.data.substring(10)
             });
             const user = await manager.findOne(User, {
                 where: {
@@ -479,14 +494,7 @@ AppDataSource.initialize().then(async () => {
             });
             if (!user) return;
 
-            await bot.sendMessage(user.id, 'Ваши аватары', {
-                reply_markup: {
-                    inline_keyboard: user.avatars.map<InlineKeyboardButton[]>(el => [{
-                        text: el.name,
-                        callback_data: `getavatar-${el.id}`
-                    }])
-                }
-            });
+            await sendWidgetAvatars(user, 'getavatar-');
         }
 
 
