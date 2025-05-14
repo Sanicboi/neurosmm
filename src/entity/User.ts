@@ -15,6 +15,11 @@ export class User {
     })
     generating: boolean;
 
+    @Column({
+        default: false
+    })
+    creatingAvatar: boolean;
+
     @OneToMany(() => Avatar, (avatar) => avatar.user)
     avatars: Avatar[];
 

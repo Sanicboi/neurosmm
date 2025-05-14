@@ -28,6 +28,21 @@ AppDataSource.initialize().then(async () => {
     })
 
     const sendWidgetAvatars = async (user: User, start: string) => {
+
+        if (user.avatars.length === 0) {
+            await bot.sendMessage(user.id, 'У вас нет аватаров', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Добавить',
+                                callback_data: 'add-avatar'
+                            }
+                        ]
+                    ]
+                }
+            })
+        }
         let media: InputMedia[] = [];
         for (const a of user.avatars) {
             media.push({
@@ -111,21 +126,9 @@ AppDataSource.initialize().then(async () => {
             user.id = msg.from.id;
 	        user.avatars = [];
             await manager.save(user);
-            const avatars = (await heygen.getAvatars()).filter(el => el.type === 'avatar').slice(0, 10);
             const voices = (await heygen.getVoices()).slice(0, 10);
 
-            await bot.sendMessage(user.id, 'Собираю аватары и голоса...');
-
-
-            for (const avatar of avatars) {
-                const a = new Avatar();
-                a.heygenId = avatar.avatar_id;
-                a.name = avatar.avatar_name;
-                a.user = user;
-                a.imageUrl = avatar.preview_image_url;
-		        user.avatars.push(a);
-                await manager.save(a);
-            }
+            await bot.sendMessage(user.id, 'Собираю нужные материалы...');
 
             for (const voice of voices) {
                 const v = new Voice();
@@ -443,17 +446,15 @@ AppDataSource.initialize().then(async () => {
             })
         }
 
-        // if (q.data === 'add-avatar') {
-        //     const avatars = (await heygen.getAvatars()).slice(0, 15);
-        //     await bot.sendMessage(q.from.id, `Выберите аватара\n${avatars.map(el => el.type === 'avatar' ? el.avatar_name : el.talking_photo_name).join('\n')}`, {
-        //         reply_markup: {
-        //             inline_keyboard: avatars.map<InlineKeyboardButton[]>(el => el.type === 'avatar' ? [{
-        //                 text: el.avatar_name,
-        //                 callback_data: `setavatar-${el.avatar_id}`
-        //             }] : [])
-        //         }
-        //     });
-        // }
+        if (q.data === 'add-avatar') {
+            const user = await manager.findOneBy(User, {
+                id: q.from.id
+            });
+            if (!user) return;
+            user.creatingAvatar = true;
+            await manager.save(user);
+            await bot.sendMessage(user.id, 'Для добавления аватара пришлите мне его ID из хейгена'); 
+        }
 
         if (q.data?.startsWith('setavatar-')) {
             const id = q.data.substring(10);
@@ -616,6 +617,43 @@ AppDataSource.initialize().then(async () => {
                     caption: false,
                     callback_id: String(user.id)
                 });
+            } else if (user?.creatingAvatar) {
+                user.creatingAvatar = false;
+                await manager.save(user);
+                try {
+                    const avatar = await heygen.getAvatar(msg.text!);
+                    const a = new Avatar();
+                    a.heygenId = avatar.id;
+                    a.imageUrl = avatar.preview_image_url;
+                    a.user = user;
+                    await manager.save(a);
+                    await bot.sendMessage(user.id, 'Аватар добавлен', {
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: 'В библиотеку аватаров',
+                                        callback_data: 'current-avatars'
+                                    }
+                                ]
+                            ]
+                        }
+                    })
+                } catch (error) {
+                    console.error(error);
+                    await bot.sendMessage(user.id, 'Неверный ID аватара.', {
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: 'Назад',
+                                        callback_data: 'add-avatar'
+                                    }
+                                ]
+                            ]
+                        }
+                    });
+                }
             }
         }
     });
