@@ -411,6 +411,7 @@ AppDataSource.initialize().then(async () => {
             });
             if (!v) return;
             const voice = voices.find(el => el.voice_id === v.heygenId)!;
+            console.log(voice);
             await bot.sendAudio(q.from.id, voice.preview_audio, {
                 reply_markup: {
                     inline_keyboard: [
