@@ -30,7 +30,7 @@ AppDataSource.initialize().then(async () => {
     const sendWidgetAvatars = async (user: User, start: string) => {
 
         if (user.avatars.length === 0) {
-            await bot.sendMessage(user.id, 'У вас нет аватаров', {
+            return await bot.sendMessage(user.id, 'У вас нет аватаров', {
                 reply_markup: {
                     inline_keyboard: [
                         [
@@ -61,6 +61,44 @@ AppDataSource.initialize().then(async () => {
             }
         });
     }
+
+
+    const sendWidgetVoices = async (user: User, start: string) => {
+        if (user.voices.length === 0) {
+            return await bot.sendMessage(user.id, 'У вас нет голосов', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Добавить голос',
+                                callback_data: 'add-voice'
+                            }
+                        ]
+                    ]
+                }
+            });
+        }
+
+
+        const voices = await heygen.getVoices();
+
+        for (const v of user.voices) {
+            const voice = voices.find(el => el.voice_id === v.heygenId)!;
+            await bot.sendAudio(user.id, voice.preview_audio, {
+                caption: v.name
+            });
+        }
+
+        await bot.sendMessage(user.id, 'Выберите голос', {
+            reply_markup: {
+                inline_keyboard: user.voices.map<InlineKeyboardButton[]>(el => [{
+                    text: el.name,
+                    callback_data: start + el.id
+                }])
+            }
+        });
+    } 
+
     app.use(express.json());
     app.post('/webhook', async (req: express.Request<any, any, {
         event_type: 'avatar_video.success',
@@ -171,22 +209,12 @@ AppDataSource.initialize().then(async () => {
 
 
             await bot.sendMessage(q.from.id, `Аватар "${avatar.name}" выбран!`);
-            await bot.sendMessage(q.from.id, 'Выберите голос озвучки', {
-                reply_markup: {
-                    inline_keyboard: [...user?.voices.map<InlineKeyboardButton[]>(el => [{
-                        text: el.name,
-                        callback_data: `voice-${el.id}`
-                    }]), [{
-                        text: 'Назад',
-                        callback_data: 'generate'
-                    }]]
-                }
-            });
+            await sendWidgetVoices(user, 'genvoice-');
         }
 
-        if (q.data?.startsWith('voice-')) {
+        if (q.data?.startsWith('genvoice-')) {
             const voice = await manager.findOneBy(Voice, {
-                id: +q.data.substring(6)
+                id: +q.data.substring(9)
             });
             if (!voice) return;
             voice.selected = true;
@@ -310,79 +338,17 @@ AppDataSource.initialize().then(async () => {
             
         }   
         
-        // if (q.data === 'add-voice') {
-        //     await bot.sendMessage(q.from.id, 'Откуда вы хотит добавить голос?', {
-        //         reply_markup: {
-        //             inline_keyboard: [
-        //                 [
-        //                     {
-        //                         text: 'Из HeyGen',
-        //                         callback_data: 'voicefrom-heygen'
-        //                     }
-        //                 ],
-        //                 [
-        //                     {
-        //                         text: 'Клонировать голос',
-        //                         callback_data: 'voicefrom-clone'
-        //                     }
-        //                 ]
-        //             ]
-        //         }
-        //     });
-        // }
-
-        if (q.data === 'voicefrom-heygen' || q.data?.startsWith('voicefrom-heygen-')) {
-            let pageN = 1;
-            if (q.data !== 'voicefrom-heygen') pageN = +q.data.substring(16);
-            const all = await heygen.getVoices();
-            const voices = (all).slice(0 * (pageN - 1), Math.min(10 * pageN, all.length));
-            await bot.sendMessage(q.from.id, `Доступные голоса:\n${voices.map<string>(el => el.name).join('\n')}`, {
-                reply_markup: {
-                    inline_keyboard: [
-                        ...voices.map<InlineKeyboardButton[]>(el => [{
-                        text: el.name,
-                        callback_data: `setvoice-${el.voice_id}`
-                    }]),
-                    all.length > (pageN * 10) ? [] : [{
-                        text: 'Следующая страница',
-                        callback_data: `voicefrom-heygen-${pageN + 1}`
-                    }],
-                    pageN === 1 ? [] : [{
-                        text: 'Предыдущая страница',
-                        callback_data: `voicefrom-heygen-${pageN - 1}`
-                    }]
-                ]
-                }
-            });
-        }
-
-        if (q.data?.startsWith('setvoice-')) {
+        if (q.data === 'add-voice')  {
             const user = await manager.findOneBy(User, {
                 id: q.from.id
             });
             if (!user) return;
-            const id = q.data.substring(9);
-            const voices = await heygen.getVoices();
-            const voice = voices.find(el => el.voice_id === id)!;
-            const v = new Voice();
-            v.heygenId = id;
-            v.name = voice.name;
-            v.selected = false;
-            v.user = user;
-            await manager.save(v);
-            await bot.sendMessage(user.id, 'Голос добавлен', {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: 'Назад',
-                                callback_data: 'settings-voice'
-                            }
-                        ]
-                    ]
-                }
-            });
+            user.addingVoice = true;
+            await manager.save(user);
+            await bot.sendMessage(user.id, 'Пришлите мне ID голоса из хейген');
         }
+
+    
 
         if (q.data === 'current-voices') {
             const user = await manager.findOne(User, {
@@ -394,14 +360,7 @@ AppDataSource.initialize().then(async () => {
                 }
             });
             if (!user) return;
-            await bot.sendMessage(q.from.id, 'Ваши голоса', {
-                reply_markup: {
-                    inline_keyboard: user.voices.map<InlineKeyboardButton[]>(el => [{
-                        text: el.name,
-                        callback_data: `getvoice-${el.id}`
-                    }])
-                }
-            })
+            await sendWidgetVoices(user, 'getvoice-');
         }
 
         if (q.data?.startsWith('getvoice-')) {
@@ -654,6 +613,21 @@ AppDataSource.initialize().then(async () => {
                             ]
                         }
                     });
+                }
+            } else if (user?.addingVoice) {
+                try {
+                    const voice = new Voice();
+                    voice.heygenId = msg.text!;
+                    const voices = await heygen.getVoices();
+                    const v = voices.find(el => el.voice_id === msg.text!)!;
+                    voice.name = v.name;
+                    voice.user = user;
+                    user.addingVoice = false;
+                    await manager.save(user);
+                    await manager.save(voice);
+                    await bot.sendMessage(user.id, 'Голос добавлен')
+                } catch (error) {
+                    await bot.sendMessage(user.id, 'Голос не найден')
                 }
             }
         }

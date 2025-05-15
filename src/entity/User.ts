@@ -20,6 +20,11 @@ export class User {
     })
     creatingAvatar: boolean;
 
+    @Column({
+        default: false
+    })
+    addingVoice: boolean;
+
     @OneToMany(() => Avatar, (avatar) => avatar.user)
     avatars: Avatar[];
 
