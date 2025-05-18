@@ -11,6 +11,7 @@ import { Avatar } from './entity/Avatar';
 import { Voice } from './entity/Voice';
 import axios from 'axios';
 import { Subtitles } from './entity/Subtitles';
+import path from 'path';
 
 export const openai = new OpenAI({
     apiKey: process.env.OPENAI_KEY
@@ -85,9 +86,7 @@ AppDataSource.initialize().then(async () => {
         for (const v of user.voices) {
             const voice = voices.find(el => el.voice_id === v.heygenId)!;
             console.log(voice.preview_audio);
-            await bot.sendAudio(user.id, voice.preview_audio, {
-                caption: v.name
-            });
+            await bot.sendMessage(user.id, `Превью голоса ${voice.name}: ${voice.preview_audio}`)
         }
 
         await bot.sendMessage(user.id, 'Выберите голос', {
