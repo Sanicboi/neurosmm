@@ -586,6 +586,7 @@ AppDataSource.initialize().then(async () => {
                     a.heygenId = avatar.id;
                     a.imageUrl = avatar.preview_image_url;
                     a.user = user;
+                    a.name = avatar.name;
                     await manager.save(a);
                     await bot.sendMessage(user.id, 'Аватар добавлен', {
                         reply_markup: {
