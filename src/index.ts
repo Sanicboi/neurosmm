@@ -345,7 +345,7 @@ AppDataSource.initialize().then(async () => {
             if (!user) return;
             user.addingVoice = true;
             await manager.save(user);
-            await bot.sendMessage(user.id, 'Пришлите мне ID голоса из хейген');
+            await bot.sendMessage(user.id, 'Пришлите мне ID голоса из хейген (Его можно найти, если при выборе голоса нажать на три точки и затем на "get voice id")');
         }
 
     
@@ -413,7 +413,7 @@ AppDataSource.initialize().then(async () => {
             if (!user) return;
             user.creatingAvatar = true;
             await manager.save(user);
-            await bot.sendMessage(user.id, 'Для добавления аватара пришлите мне его ID из хейгена'); 
+            await bot.sendMessage(user.id, 'Для добавления аватара пришлите мне его ID из хейген. (ID аватара можно найти, если нажать на три точки при выборе аватар и нажать "copy avatar id")'); 
         }
 
         if (q.data?.startsWith('setavatar-')) {
