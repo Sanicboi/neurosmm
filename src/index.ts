@@ -11,7 +11,6 @@ import { Avatar } from './entity/Avatar';
 import { Voice } from './entity/Voice';
 import axios from 'axios';
 import { Subtitles } from './entity/Subtitles';
-import path from 'path';
 
 export const openai = new OpenAI({
     apiKey: process.env.OPENAI_KEY
@@ -64,7 +63,7 @@ AppDataSource.initialize().then(async () => {
     }
 
 
-    const sendWidgetVoices = async (user: User, start: string) => {
+    const sendWidgetVoices = async (user: User, start: string, sendPreview: boolean) => {
         if (user.voices.length === 0) {
             return await bot.sendMessage(user.id, 'У вас нет голосов', {
                 reply_markup: {
@@ -86,7 +85,7 @@ AppDataSource.initialize().then(async () => {
         for (const v of user.voices) {
             const voice = voices.find(el => el.voice_id === v.heygenId)!;
             console.log(voice.preview_audio);
-            await bot.sendMessage(user.id, `Превью голоса ${voice.name}: ${voice.preview_audio}`)
+            if (sendPreview) await bot.sendMessage(user.id, `Превью голоса ${voice.name}: ${voice.preview_audio}`)
         }
 
         await bot.sendMessage(user.id, 'Выберите голос', {
@@ -209,7 +208,7 @@ AppDataSource.initialize().then(async () => {
 
 
             await bot.sendMessage(q.from.id, `Аватар "${avatar.name}" выбран!`);
-            await sendWidgetVoices(user, 'genvoice-');
+            await sendWidgetVoices(user, 'genvoice-', false);
         }
 
         if (q.data?.startsWith('genvoice-')) {
@@ -360,7 +359,7 @@ AppDataSource.initialize().then(async () => {
                 }
             });
             if (!user) return;
-            await sendWidgetVoices(user, 'getvoice-');
+            await sendWidgetVoices(user, 'getvoice-', true);
         }
 
         if (q.data?.startsWith('getvoice-')) {

@@ -1,10 +1,7 @@
 import axios, { AxiosResponse } from "axios";
-import path from "path";
 import { openai } from ".";
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
-import { PassThrough, Readable, Writable } from "stream";
-import { v4 } from "uuid";
 import { Subtitles } from "./entity/Subtitles";
 
 export class SubtitleGenerator {
