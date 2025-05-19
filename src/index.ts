@@ -107,7 +107,8 @@ AppDataSource.initialize().then(async () => {
             callback_id: string;
         }
     }>, res) => {
-        const video = new Video();
+        if (req.body.event_type === 'avatar_video.success') {
+            const video = new Video();
         video.id = req.body.event_data.video_id;
         video.user = new User();
         video.user.id = +req.body.event_data.callback_id;
@@ -130,6 +131,8 @@ AppDataSource.initialize().then(async () => {
             }
         });
         res.status(200).end()
+        }
+        
     });
 
     await bot.setMyCommands([
