@@ -166,16 +166,27 @@ AppDataSource.initialize().then(async () => {
             user.id = msg.from.id;
 	        user.avatars = [];
             await manager.save(user);
-            const voices = (await heygen.getVoices()).slice(0, 10);
-
+            const defaultVoices: string[] = ['77adf54adb1d46ce9c70d0b50ce7bc54', '50ab8f40f8a34d66aa4338729900c1b0'];
+            const defaultAvatars: string[] = ['f61786b47c2049aba1b6c16b49a67ab1', 'c05db8d838fa429ba5e92fd1ba270a07'];
             await bot.sendMessage(user.id, 'Собираю нужные материалы...');
-
-            for (const voice of voices) {
+            const voices = await heygen.getVoices();
+            for (const voice of defaultVoices) {
+                const inHeygen = voices.find(el => el.voice_id === voice)!;
                 const v = new Voice();
-                v.heygenId = voice.voice_id;
-                v.name = voice.name;
+                v.heygenId = inHeygen.voice_id;
+                v.name = inHeygen.name;
                 v.user = user;
                 await manager.save(v);
+            }
+
+            for (const a of defaultAvatars) {
+                const avatar = new Avatar();
+                const inHeygen = await heygen.getAvatar(a);
+                avatar.heygenId = inHeygen.id;
+                avatar.imageUrl = inHeygen.preview_image_url;
+                avatar.name = inHeygen.name;
+                avatar.user = user;
+                await manager.save(avatar);
             }
 
             const s = new Subtitles();

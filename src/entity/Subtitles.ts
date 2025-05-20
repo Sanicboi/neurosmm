@@ -14,7 +14,7 @@ export class Subtitles {
     name: string;
 
     @Column({
-        default: 16
+        default: 40
     })
     fontSize: number;
 
