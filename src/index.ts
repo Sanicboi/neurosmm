@@ -167,7 +167,7 @@ AppDataSource.initialize().then(async () => {
 	        user.avatars = [];
             await manager.save(user);
             const defaultVoices: string[] = ['77adf54adb1d46ce9c70d0b50ce7bc54', '50ab8f40f8a34d66aa4338729900c1b0'];
-            const defaultAvatars: string[] = ['f61786b47c2049aba1b6c16b49a67ab1', 'c05db8d838fa429ba5e92fd1ba270a07'];
+            const defaultAvatars: string[] = ['850eac64aa844fc0a35453acf230ad4b', '253446ebca244c20b767944190d15609'];
             await bot.sendMessage(user.id, 'Собираю нужные материалы...');
             const voices = await heygen.getVoices();
             for (const voice of defaultVoices) {
