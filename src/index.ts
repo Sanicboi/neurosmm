@@ -187,6 +187,7 @@ AppDataSource.initialize().then(async () => {
                 avatar.name = inHeygen.name;
                 avatar.user = user;
                 await manager.save(avatar);
+                user.avatars.push(avatar);
             }
 
             const s = new Subtitles();
