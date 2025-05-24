@@ -12,7 +12,7 @@ export interface IAvatar {
 
 export interface ISingleAvatar {
     id: string;
-    type: 'avatar';
+    type: 'avatar' | 'talking_photo';
     name: string;
     gender: string;
     preview_video_url: string;
@@ -43,8 +43,8 @@ export interface ICreateVideo {
     callback_id?: string;
     video_inputs: {
         character?: {
-            type: 'avatar';
-            avatar_id: string;
+            type: 'avatar' | 'talking_photo';
+            avatar_id?: string;
             scale?: number;
             avatar_style?: 'circle' | 'normal' | 'closeup';
             offset?: {
@@ -53,6 +53,7 @@ export interface ICreateVideo {
             }
             matting?: boolean;
             circle_background_color?: string;
+            talking_photo_id?: string;
         };
         voice?: {
             type: 'text';

@@ -578,8 +578,9 @@ AppDataSource.initialize().then(async () => {
                     video_inputs: [
                         {
                             character: {
-                                type: 'avatar',
+                                type: avatar.type,
                                 avatar_id: avatar.heygenId,
+                                talking_photo_id: avatar.heygenId,
                                 avatar_style: 'normal',
                             },
                             voice: {
