@@ -23,6 +23,9 @@ export class Avatar {
     })
     imageUrl: string;
 
+    @Column()
+    type: "avatar" | "talking_photo";
+
     @ManyToOne(() => User, (user) => user.avatars)
     user: User;
 }

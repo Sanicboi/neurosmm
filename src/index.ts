@@ -186,6 +186,7 @@ AppDataSource.initialize().then(async () => {
                 avatar.imageUrl = inHeygen.preview_image_url;
                 avatar.name = inHeygen.name;
                 avatar.user = user;
+                avatar.type = inHeygen.type;
                 await manager.save(avatar);
                 user.avatars.push(avatar);
             }
@@ -601,6 +602,7 @@ AppDataSource.initialize().then(async () => {
                     a.imageUrl = avatar.preview_image_url;
                     a.user = user;
                     a.name = avatar.name;
+                    a.type = avatar.type;
                     await manager.save(a);
                     await bot.sendMessage(user.id, 'Аватар добавлен', {
                         reply_markup: {
