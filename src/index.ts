@@ -487,7 +487,39 @@ AppDataSource.initialize().then(async () => {
         }
 
         if (q.data === 'settings-subtitles') {
-            // TODO
+            const user = await manager.findOne(User, {
+                where: {
+                    id: q.from.id
+                },
+                relations: {
+                    subtitles: true
+                }
+            });
+            if (!user) return;
+            await bot.sendMessage(q.from.id, 'Текущие субтитры', {
+                reply_markup: {
+                    inline_keyboard: user.subtitles.map<InlineKeyboardButton[]>(el => [{
+                        text: el.name,
+                        callback_data: `subs-${el.id}`
+                    }])
+                }
+            })
+        }
+
+
+        if (q.data?.startsWith('subs-')) {
+            const id = q.data.substring(5);
+            const subs = await manager.findOneBy(Subtitles, {
+                id: +id
+            });
+            if (!subs) return;
+
+            await bot.sendDocument(q.from.id, subtitleGenerator.getPreviewFile(subs), {
+                caption: 'Вот так выглядит текст субтитров'
+            }, {
+                contentType: 'text/html',
+                filename: 'preview.html'
+            });
         }
     });
 

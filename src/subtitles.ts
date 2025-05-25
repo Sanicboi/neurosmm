@@ -186,4 +186,30 @@ export class SubtitleGenerator {
 
     return edited;
   }
+
+
+  public getPreviewFile(subtitles: Subtitles): Buffer {
+    let content = `
+      <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <style>
+    p {
+      font-size: ${subtitles.fontSize}px;
+      font-family: ${subtitles.fontFamily};
+      color: #${subtitles.color};
+    }
+    </style>
+    <p>Вот так будет выглядеть текст субтитров</p>
+</body>
+</html>
+    `;
+
+  return Buffer.from(content, 'utf-8');
+  }
 }
