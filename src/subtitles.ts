@@ -3,21 +3,15 @@ import { openai } from ".";
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
 import { Subtitles } from "./entity/Subtitles";
+import path from "path";
+import { v4 } from "uuid";
 
-export class SubtitleGenerator {
+/**
+ * @example
+ * const subtitlePath = await generator.generate();
+ */
+class SubtitleGenerator {
   constructor() {}
-
-  private async fetchVideo(url: string | Buffer): Promise<string> {
-    if (typeof url === 'string') {
-      const res: AxiosResponse<Buffer> = await axios.get(url, {
-      responseType: "arraybuffer",
-      });
-      await fs.promises.writeFile("./video.mp4", res.data);
-    } else {
-      await fs.promises.writeFile("./video.mp4", url);
-    }
-    return "./video.mp4";
-  }
 
   private async transcribe(videoPath: string): Promise<
     {
@@ -79,25 +73,33 @@ export class SubtitleGenerator {
   Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   `;
     const events = words
-    .reduce<{
-      text: string;
-      start: number;
-      end: number;
-    }[]>((a: {
-      text: string;
-      start: number;
-      end: number;
-    }[], el) => {
-      const idx = a.length - 1;
-      if (idx === -1 || !(a[idx].text.length < 7 && el.text.length < 7)) {
-        a.push(el);
-      } else {
-          a[idx].text += " " + el.text;
-          a[idx].end = el.end;
-      }
+      .reduce<
+        {
+          text: string;
+          start: number;
+          end: number;
+        }[]
+      >(
+        (
+          a: {
+            text: string;
+            start: number;
+            end: number;
+          }[],
+          el
+        ) => {
+          const idx = a.length - 1;
+          if (idx === -1 || !(a[idx].text.length < 7 && el.text.length < 7)) {
+            a.push(el);
+          } else {
+            a[idx].text += " " + el.text;
+            a[idx].end = el.end;
+          }
 
-      return a;
-    }, [])
+          return a;
+        },
+        []
+      )
       .map(
         (s) =>
           `Dialogue: 0,${this.formatTimeASS(s.start)},${this.formatTimeASS(
@@ -106,6 +108,11 @@ export class SubtitleGenerator {
       )
       .join("\n");
     return header + "\n" + events;
+  }
+
+  public async reTranscribe(videoPath: string): Promise<string> {
+    const words = await this.transcribe(videoPath);
+    return JSON.stringify(words);
   }
 
   private async getDimensions(file: string): Promise<{
@@ -126,67 +133,34 @@ export class SubtitleGenerator {
   }
 
   private async writeASSToFile(ass: string): Promise<string> {
-    await fs.promises.writeFile('.temp.ass', ass, "utf-8");
-    return '.temp.ass';
-  }
-
-  private async appendSubtitles(videoPath: string, subtitlesPath: string): Promise<Buffer> {
-    await new Promise((resolve, reject) => {
-        ffmpeg()
-            .input(videoPath)
-            .videoFilters([
-                {
-                    filter: 'ass',
-                    options: subtitlesPath
-                }
-            ])
-            .outputOptions('-c:a copy')
-            .on('end', resolve)
-            .on('error', reject)
-            .output('output.mp4')
-            .run();
-    });
-
-    const buf =  await fs.promises.readFile('output.mp4');
-    await this.cleanup('output.mp4');
-    return buf;
-  }
-
-  private async cleanup(p: string) {
-    await fs.promises.rm(p);
+    const p = path.join(process.cwd(), "subtitles", `${v4()}.ass`);
+    await fs.promises.writeFile(p, ass, "utf-8");
+    return p;
   }
 
   /**
-   * Fetches the video and embeds the subtitles into it
+   * Creates the subtitle file for the video
    * @param videoUrl
    */
-  public async generate(videoUrl: string | Buffer, subtitles: Subtitles): Promise<Buffer> {
-    // fetch the video
-    const file = await this.fetchVideo(videoUrl);
-
-    // transcribe into words
-    const words = await this.transcribe(file);
+  public async generate(
+    subtitles: Subtitles,
+    words: {
+      text: string;
+      start: number;
+      end: number;
+    }[],
+    videoPath: string
+  ): Promise<string> {
 
     // get the dimensions
-    const dimension = await this.getDimensions(file);
+    const dimension = await this.getDimensions(videoPath);
 
     // styled subtitles
     const ass = this.generateASS(words, dimension, subtitles);
     const filePath = await this.writeASSToFile(ass);
 
-    
-
-    // editing the video
-    const edited = await this.appendSubtitles(file, filePath);
-
-    await Promise.all([
-        async () => this.cleanup(file),
-        async () => this.cleanup(filePath)
-    ]);
-
-    return edited;
+    return filePath;
   }
-
 
   public getPreviewFile(subtitles: Subtitles): Buffer {
     let content = `
@@ -210,6 +184,9 @@ export class SubtitleGenerator {
 </html>
     `;
 
-  return Buffer.from(content, 'utf-8');
+    return Buffer.from(content, "utf-8");
   }
 }
+
+
+export default new SubtitleGenerator();

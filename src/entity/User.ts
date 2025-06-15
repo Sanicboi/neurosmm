@@ -10,20 +10,6 @@ export class User {
     @PrimaryColumn('bigint')
     id: number;
 
-    @Column({
-        default: false
-    })
-    generating: boolean;
-
-    @Column({
-        default: false
-    })
-    creatingAvatar: boolean;
-
-    @Column({
-        default: false
-    })
-    addingVoice: boolean;
 
     @OneToMany(() => Avatar, (avatar) => avatar.user)
     avatars: Avatar[];
@@ -31,21 +17,15 @@ export class User {
     @OneToMany(() => Voice, (voice) => voice.user)
     voices: Voice[];
 
-
-    @Column({
-        default: 720
-    })
-    resWidth: number;
-
-    @Column({
-        default: 1280
-    })
-    resHeight: number;
-
     @OneToMany(() => Video, (video) => video.user)
     videos: Video[];
     
     @OneToMany(() => Subtitles, (subtitles) => subtitles.user)
     subtitles: Subtitles[];
 
+
+    @Column({
+        default: 'none'
+    })
+    waitingFor: 'none' | 'script' | 'images' | 'avatar' | 'voice';
 }

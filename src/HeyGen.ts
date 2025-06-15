@@ -73,7 +73,7 @@ export interface ICreateVideo {
     callback_url?: string;
 }
 
-export class HeyGen {
+class HeyGen {
 
     private token: string = process.env.HEYGEN_TOKEN!;
 
@@ -140,3 +140,5 @@ export class HeyGen {
         });
     }
 }
+
+export const heygen = new HeyGen();

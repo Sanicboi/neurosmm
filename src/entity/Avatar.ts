@@ -1,31 +1,36 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { User } from "./User";
+import { Video } from "./Video";
 
-
-@Entity() 
+@Entity()
 export class Avatar {
-    @PrimaryGeneratedColumn()
-    id: number;
-    
-    @Column()
-    heygenId: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    name: string;
+  @Column()
+  heygenId: string;
 
-    @Column({
-        default: false
-    })
-    selected: boolean;
+  @Column()
+  name: string;
 
-    @Column({
-        default: ''
-    })
-    imageUrl: string;
 
-    @Column()
-    type: "avatar" | "talking_photo";
+  @Column({
+    default: "",
+  })
+  imageUrl: string;
 
-    @ManyToOne(() => User, (user) => user.avatars)
-    user: User;
+  @Column()
+  type: "avatar" | "talking_photo";
+
+  @ManyToOne(() => User, (user) => user.avatars)
+  user: User;
+
+  @OneToMany(() => Video, (video) => video.avatar)
+  videos: Video[];
 }

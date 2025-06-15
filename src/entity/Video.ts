@@ -1,6 +1,9 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
 import { User } from "./User";
 import { Subtitles } from "./Subtitles";
+import { Avatar } from "./Avatar";
+import { Voice } from "./Voice";
+import { Image } from "./Image";
 
 
 
@@ -8,17 +11,41 @@ import { Subtitles } from "./Subtitles";
 export class Video {
 
 
-    @PrimaryColumn()
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
-    @Column()
-    url: string;
+
 
     @ManyToOne(() => User, (user) => user.videos)
     user: User;
 
-    @ManyToOne(() => Subtitles, (subtitles) => subtitles.videos)
+    @ManyToOne(() => Subtitles, (subtitles) => subtitles.videos, {
+        nullable: true
+    })
     subtitles: Subtitles;
+
+    @ManyToOne(() => Avatar, (avatar) => avatar.videos, {
+        nullable: true
+    })
+    avatar: Avatar;
+
+    @ManyToOne(() => Voice, (voice) => voice.videos, {
+        nullable: true
+    })
+    voice: Voice;
+
+    @OneToMany(() => Image, (image) => image.video)
+    images: Image[];
+
+    @Column({
+        default: 1080
+    })
+    width: number;
+
+    @Column({
+        default: 1920
+    })
+    height: number;
 
     @Column({
         default: false
@@ -28,5 +55,15 @@ export class Video {
     @Column('bytea', {
         nullable: true
     })
-    file: Buffer;
+    file: Buffer | null;
+
+    @Column({
+        nullable: true
+    })
+    transcribed: string;
+
+    @Column({
+        nullable: true
+    })
+    basename: string;
 }

@@ -22,7 +22,8 @@
       "reflect-metadata": "^0.2.2",
       "tmp-promise": "^3.0.3",
       "typeorm": "0.3.22",
-      "uuid": "^11.1.0"
+      "uuid": "^11.1.0",
+      "zod": "^3.25.64"
    },
    "scripts": {
       "start": "ts-node src/index.ts",

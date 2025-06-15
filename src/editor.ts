@@ -3,6 +3,8 @@ import fs from "fs/promises";
 import { Readable, Writable } from "stream";
 import ffmpeg from "fluent-ffmpeg";
 import { v4 } from "uuid";
+import { Subtitles } from "./entity/Subtitles";
+import generator from './subtitles';
 
 export interface IImage {
   source: Buffer;
@@ -11,13 +13,25 @@ export interface IImage {
   extension: string;
 }
 
+/**
+ *
+ * @example
+ * const editor = new VideoEditor("video.mp3", Buffer.from([...]));
+ *
+ * await editor.init();
+ * await editor.addImages([...]);
+ * await editor.addSubtitles(...);
+ * const buffer = await editor.getBuffer();
+ * await editor.cleanup();
+ *
+ */
 export class VideoEditor {
   private _path: string;
 
   constructor(private _name: string, private _buffer: Buffer) {}
 
   public async init() {
-    this._path = path.join(process.cwd(), "video", `editing-${this._name}`);
+    this._path = path.join(process.cwd(), "video", this._name);
     await fs.writeFile(this._path, this._buffer);
     return this;
   }
@@ -35,14 +49,20 @@ export class VideoEditor {
     }
   }
 
+  public get path() {
+    return this._path;
+  }
+
   private async scaleDownImage(
     buffer: Buffer,
     extname: string
   ): Promise<Buffer> {
-    const p = path.join(process.cwd(), "images", `${v4()}${extname}`);
-    await fs.writeFile(p, buffer);
+    const basename = `${v4()}${extname}`;
+    const inputPath = path.join(process.cwd(), "images", `input-${basename}`);
+    const outputPath = path.join(process.cwd(), "images", `output-${basename}`);
+    await fs.writeFile(inputPath, buffer);
     await new Promise((resolve, reject) => {
-      ffmpeg(path.join(process.cwd(), p))
+      ffmpeg(inputPath)
         .videoFilters([
           {
             filter: "scale",
@@ -51,11 +71,12 @@ export class VideoEditor {
         ])
         .on("error", reject)
         .on("end", resolve)
-        .output(path.join(process.cwd(), p))
+        .output(outputPath)
         .run();
     });
-    const b = await fs.readFile(p);
-    await fs.rm(p);
+    const b = await fs.readFile(outputPath);
+    await fs.rm(inputPath);
+    await fs.rm(outputPath);
     return b;
   }
 
@@ -63,9 +84,15 @@ export class VideoEditor {
     const imagePath = path.join(
       process.cwd(),
       "images",
-      `${v4()}${image.extension}`
+      `input-${v4()}${image.extension}`
     );
     await fs.writeFile(imagePath, image.source);
+
+    const outputPath = path.join(
+      process.cwd(),
+      "video",
+      `${v4()}${this._name}`
+    );
 
     await new Promise((resolve, reject) => {
       ffmpeg(this._path)
@@ -80,13 +107,44 @@ export class VideoEditor {
             },
           },
         ])
-        .output(this._path.split('.').map((el, idx) => idx === 0 ? el + '1' : el).join('.'))
+        .output(outputPath)
         .on("error", reject)
         .on("end", resolve)
         .run();
     });
 
     await fs.rm(imagePath);
+    await fs.rm(this._path);
+    this._path = outputPath;
+  }
+
+  public async addSubtitles(subtitles: Subtitles, words: string): Promise<void> {
+    const assPath: string = await generator.generate(subtitles, JSON.parse(words), this._path);
+
+    const outputPath = path.join(
+      process.cwd(),
+      "video",
+      `${v4()}${this._name}`
+    );
+
+    await new Promise((resolve, reject) => {
+      ffmpeg(this._path)
+        .videoFilters([
+          {
+            filter: "ass",
+            options: assPath,
+          },
+        ])
+        .output(outputPath)
+        .outputOptions("-c:a copy")
+        .on("end", resolve)
+        .on("error", reject)
+        .run();
+    });
+
+    await fs.rm(this._path);
+    await fs.rm(assPath);
+    this._path = outputPath;
   }
 
   public async cleanup() {
