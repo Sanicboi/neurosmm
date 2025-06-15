@@ -17,10 +17,11 @@ export default async(images: Image[], transcription: string): Promise<IImage[]> 
     let ids: string[] = [];
     let result: IImage[] = [];
     for (const image of images) {
-        await openai.files.create({
+        const r = await openai.files.create({
             file: new File([image.data], image.basename),
             purpose: 'vision'
         });
+        ids.push(r.id);
     }
 
     const res = await openai.responses.parse({
@@ -38,15 +39,17 @@ export default async(images: Image[], transcription: string): Promise<IImage[]> 
                     ...images.map<ResponseInputContent>((el, idx) => ({
                         type: 'input_image',
                         detail: 'auto',
-                        file_id: ids[idx]
+                        file_id: ids[idx],
                     }))
                 ]
             }
         ],
         text: {
             format: zodTextFormat(Insertions, "result")
-        }
+        },
+        store: false
     });
+    
 
     if (!res.output_parsed) throw new Error("Could not parse");
     for (let i = 0; i < res.output_parsed.data.length; i++) {
@@ -58,5 +61,8 @@ export default async(images: Image[], transcription: string): Promise<IImage[]> 
         });
     }
 
+    for (const id of ids) {
+        await openai.files.del(id);
+    }
     return result;
 }
