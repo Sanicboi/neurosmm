@@ -19,7 +19,7 @@ import ffmpeg from "fluent-ffmpeg";
           },
         },
       ])
-      .output(videoPath)
+      .output(videoPath.split('.').map((el, idx) => idx === 0 ? el + '1' : el).join('.'))
       .on("error", reject)
       .on("end", resolve)
       .run();
