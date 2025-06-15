@@ -80,7 +80,7 @@ export class VideoEditor {
             },
           },
         ])
-        .output(this._path)
+        .output(this._path.split('.').map((el, idx) => idx === 0 ? el + '1' : el).join('.'))
         .on("error", reject)
         .on("end", resolve)
         .run();
