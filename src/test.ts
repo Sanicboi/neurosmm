@@ -1,11 +1,10 @@
 import { Readable, Writable } from "typeorm/platform/PlatformTools";
-import fs from 'fs/promises';
+import fs from "fs/promises";
 import path from "path";
-import ffmpeg from 'fluent-ffmpeg';
-
+import ffmpeg from "fluent-ffmpeg";
 
 (async () => {
-  const buffer = await fs.readFile(path.join(process.cwd(), 'input.png'))
+  const buffer = await fs.readFile(path.join(process.cwd(), "input.png"));
 
   const r = await new Promise<Buffer>((resolve, reject) => {
     const inputStream = new Readable();
@@ -24,11 +23,15 @@ import ffmpeg from 'fluent-ffmpeg';
     });
 
     ffmpeg(inputStream)
-      .inputFormat("image2pipe")
-      .outputOptions("-vf", "scale=512:512")
+      .videoFilters([
+        {
+          filter: "scale",
+          options: "512:512",
+        },
+      ])
       .on("error", reject)
       .pipe(outputStream, { end: true });
   });
 
-  await fs.writeFile(path.join(process.cwd(), 'output.png'), r);
+  await fs.writeFile(path.join(process.cwd(), "output.png"), r);
 })();

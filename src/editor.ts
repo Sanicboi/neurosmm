@@ -30,7 +30,7 @@ export class VideoEditor {
             images[i].source = await this.scaleDownImage(images[i].source);
         }
 
-        
+
     }
 
     private async scaleDownImage(buffer: Buffer): Promise<Buffer> {
@@ -51,8 +51,10 @@ export class VideoEditor {
             });
 
             ffmpeg(inputStream)
-                .inputFormat('image2pipe')
-                .outputOptions('-vf', 'scale=512:512')
+                .videoFilters([{
+                    filter: 'scale',
+                    options: '512:512'
+                }])
                 .on('error', reject)
                 .pipe(outputStream, {end: true});
         })
