@@ -62,7 +62,7 @@ AppDataSource.initialize()
           video.file = (await axios.get(req.body.event_data.url, {
             responseType: 'arraybuffer'
           })).data;
-          video.basename = path.basename(req.body.event_data.url);
+          video.basename = `${req.body.event_data.video_id}.mp4`;
           await manager.save(video);
           await bot.sendVideo(
             video.user.id,
