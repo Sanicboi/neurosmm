@@ -149,7 +149,7 @@ AppDataSource.initialize()
         }
 
         const s = new Subtitles();
-        s.color = "000000FF";
+        s.color = "FFFFFFFF";
         s.fontFamily = "Helvetica";
         s.name = "По умолчанию";
         s.user = user;
