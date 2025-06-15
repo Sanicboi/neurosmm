@@ -4,18 +4,24 @@ import path from "path";
 import ffmpeg from "fluent-ffmpeg";
 
 (async () => {
-
+  const videoPath = path.join(process.cwd(), 'input.mp4');
+  const imagePath = path.join(process.cwd(), 'output.png')
   await new Promise((resolve, reject) => {
-    ffmpeg(path.join(process.cwd(), "input.png"))
-      .videoFilters([
+    ffmpeg(videoPath)
+      .input(imagePath)
+      .complexFilter([
         {
-          filter: "scale",
-          options: "512:512",
+          filter: "overlay",
+          options: {
+            x: "(main_w-overlay_w)/2",
+            y: "(main_h-overlay_h)/2",
+            enable: `between(t\\,${3}\\,${5})`,
+          },
         },
       ])
+      .output(videoPath)
       .on("error", reject)
-      .on('end', resolve)
-      .output(path.join(process.cwd(), "output.png"))
+      .on("end", resolve)
       .run();
-  })
+  });
 })();
