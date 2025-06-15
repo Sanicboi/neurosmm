@@ -54,7 +54,9 @@ AppDataSource.initialize()
             where: {
               id: Number(req.body.event_data.callback_id),
             },
-            relations: {},
+            relations: {
+              user: true
+            },
           });
           if (!video) return;
           video.file = (await axios.get(req.body.event_data.url, {
@@ -63,7 +65,7 @@ AppDataSource.initialize()
           video.basename = path.basename(req.body.event_data.url);
           await manager.save(video);
           await bot.sendVideo(
-            +req.body.event_data.callback_id,
+            video.user.id,
             req.body.event_data.url,
             {
               caption: "Видео готово",
