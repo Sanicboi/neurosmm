@@ -10,6 +10,8 @@ import { Image } from "../entity/Image";
 import axios, { AxiosResponse } from "axios";
 import path from "path";
 import { heygen } from "../HeyGen";
+import { insertVideos } from "../insertionAI";
+import { Segment } from "../entity/Segment";
 
 const manager = AppDataSource.manager;
 
@@ -120,20 +122,21 @@ export default async (bot: TelegramBot) => {
       const video = user.videos.find((el) => el.active);
       if (!video) return;
 
-      user.waitingFor = 'images';
+      user.waitingFor = "images";
       await manager.save(user);
 
       video.height = height;
       video.width = width;
       await manager.save(video);
-      await bot.sendMessage(user.id, 'Разрешение выбрано!');
+      await bot.sendMessage(user.id, "Разрешение выбрано!");
       await bot.sendMessage(
         user.id,
         "Теперь пришлите мне картинки для вставок. ВАЖНО - все картинки должны быть квадратными!"
       );
     }
 
-    if (q.data === "script") {
+
+    if (q.data === "segments") {
       const user = await manager.findOne(User, {
         where: {
           id: q.from.id,
@@ -146,13 +149,44 @@ export default async (bot: TelegramBot) => {
       const video = user.videos.find((el) => el.active);
       if (!video) return;
 
+      user.waitingFor = "segments";
+      await manager.save(user);
+      await bot.sendMessage(
+        user.id,
+        "Пришлите мне готовые сегменты. ВАЖНО! Все видео должны быть в формате .mp4",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "Дальше",
+                  callback_data: "script",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+
+
+    if (q.data === 'script') {
+      const user = await manager.findOne(User, {
+        where: {
+          id: q.from.id,
+        },
+        relations: {
+          videos: true,
+        },
+      });
+      if (!user) return;
+      const video = user.videos.find((el) => el.active);
+      if (!video) return;
       user.waitingFor = 'script';
       await manager.save(user);
-      await bot.sendMessage(user.id, 'Для генерации пришлите мне скрипт видео.');
+      await bot.sendMessage(user.id, 'Пришлите мне промпт с описанием скрипта видео, а также каждого сегмента. ВАЖНО! В ТОМ ЖЕ ПОРЯДКЕ, ЧТО И ДО ЭТОГО!!!')
     }
   });
-
-
 
   bot.on("photo", async (msg) => {
     if (!msg.photo) return;
@@ -166,7 +200,7 @@ export default async (bot: TelegramBot) => {
       },
     });
 
-    if (!user || user.waitingFor !== 'images') return;
+    if (!user || user.waitingFor !== "images") return;
     const video = user.videos.find((el) => el.active);
     if (!video) return;
 
@@ -194,13 +228,53 @@ export default async (bot: TelegramBot) => {
             [
               {
                 text: "Дальше",
-                callback_data: "script",
+                callback_data: "segments",
               },
             ],
           ],
         },
       }
     );
+  });
+
+  bot.on("video", async (msg) => {
+    if (!msg.video || !msg.from) return;
+    const user = await manager.findOne(User, {
+      where: {
+        id: msg.from.id,
+      },
+      relations: {
+        videos: {
+          segments: true
+        }
+      },
+    });
+    if (!user) return;
+    const video = user.videos.find((el) => el.active);
+    if (!video) return;
+    if (user.waitingFor !== 'segments') return;
+    const segment = new Segment();
+    segment.video = video;
+    segment.index = video.segments.length;
+    const url = await bot.getFileLink(msg.video.file_id);
+    segment.data = (
+      await axios.get(url, {
+        responseType: "arraybuffer",
+      })
+    ).data;
+    await manager.save(segment);
+    await bot.sendMessage(user.id, "Сегмент добавлен!", {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "Дальше",
+              callback_data: "script",
+            },
+          ],
+        ],
+      },
+    });
   });
 
   bot.onText(/./, async (msg) => {
@@ -212,36 +286,51 @@ export default async (bot: TelegramBot) => {
       },
       relations: {
         videos: {
-            avatar: true, 
-            voice: true
+          avatar: true,
+          voice: true,
         },
       },
     });
 
-    if (!user || user.waitingFor !== 'script') return;
-    const video = user.videos.find(el => el.active);
+    if (!user || user.waitingFor !== "script") return;
+    const video = user.videos.find((el) => el.active);
     if (!video) return;
 
-    const res = await heygen.generateVideo({
-        dimension: {
+    const res = await insertVideos(video.segments.sort((a, b) => a.id - b.id), msg.text);
+    for (let i = 0; i < res.length; i++) {
+      const current = res[i];
+      if (current.type === "ai") {
+        const segment = new Segment();
+        segment.video = video;
+        segment.index = i;
+        await manager.save(segment);
+        await heygen.generateVideo({
+          dimension: {
             height: video.height,
-            width: video.width
-        },
-        callback_id: String(video.id),
-        video_inputs: [{
-            character: {
+            width: video.width,
+          },
+          callback_id: String(segment.id),
+          video_inputs: [
+            {
+              character: {
                 type: video.avatar.type,
                 avatar_id: video.avatar.heygenId,
                 talking_photo_id: video.avatar.heygenId,
-            },
-            voice: {
-                type: 'text',
+              },
+              voice: {
+                type: "text",
                 input_text: msg.text,
                 voice_id: video.voice.heygenId,
-                speed: 1.1
-            }
-        }]
-    });
-    await bot.sendMessage(user.id, 'Генерирую видео...');
-  })
+                speed: 1.1,
+              },
+            },
+          ],
+        });
+      } else {
+        current.insertion.index = i;
+        await manager.save(current);
+      }
+    }
+    await bot.sendMessage(user.id, "Генерирую видео...");
+  });
 };

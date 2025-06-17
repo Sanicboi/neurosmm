@@ -18,6 +18,7 @@ import editing from "./routers/editing";
 import { generateKey } from "crypto";
 import generation from "./routers/generation";
 import settings from "./routers/settings";
+import { Segment } from "./entity/Segment";
 
 export const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -50,38 +51,39 @@ AppDataSource.initialize()
         res
       ) => {
         if (req.body.event_type === "avatar_video.success") {
-          const video = await manager.findOne(Video, {
+          const segment = await manager.findOne(Segment, {
             where: {
               id: Number(req.body.event_data.callback_id),
             },
             relations: {
-              user: true
+              video: {
+                user: true,
+                segments: true
+              }
             },
           });
-          if (!video) return;
-          video.file = (await axios.get(req.body.event_data.url, {
+          if (!segment) return;
+          segment.data = (await axios.get(req.body.event_data.url, {
             responseType: 'arraybuffer'
           })).data;
-          video.basename = `${req.body.event_data.video_id}.mp4`;
-          await manager.save(video);
-          await bot.sendVideo(
-            video.user.id,
-            req.body.event_data.url,
-            {
-              caption: "Видео готово",
+          await manager.save(segment);
+          await bot.sendMessage(segment.video.user.id, 'Сегмент видео готов!');
+          res.status(200).end();
+
+          if (segment.index === segment.video.segments.length - 1) {
+            await bot.sendMessage(segment.video.user.id, 'Все сегменты видео готовы', {
               reply_markup: {
                 inline_keyboard: [
                   [
                     {
-                      text: "Приступить к монтажу",
-                      callback_data: `edit-${video.id}`,
-                    },
-                  ],
-                ],
-              },
-            }
-          );
-          res.status(200).end();
+                      text: 'Приступить к монтажу',
+                      callback_data: `edit-${segment.video.id}`
+                    }
+                  ]
+                ]
+              }
+            })
+          }
         }
       }
     );

@@ -4,7 +4,7 @@ import { User } from "../entity/User";
 import { Subtitles } from "../entity/Subtitles";
 import { VideoEditor } from "../editor";
 import subtitles from "../subtitles";
-import insertionAI from "../insertionAI";
+import { insertImages } from "../insertionAI";
 
 const manager = AppDataSource.manager;
 export default async (bot: TelegramBot) => {
@@ -60,17 +60,19 @@ export default async (bot: TelegramBot) => {
       await manager.save(video);
 
       await bot.sendMessage(user.id, 'Редактирую видео...');
-      await bot.sendMessage(user.id, 'Ретранскрибирую видео с тайм-кодами...');
-      if (!video.file) return;
-      const editor = new VideoEditor(video.basename, video.file);
+      await bot.sendMessage(user.id, 'Объединяю сегменты...')
+      const editor = new VideoEditor(video.basename, video.segments);
       await editor.init();
+
+      await bot.sendMessage(user.id, 'Ретранскрибирую видео с тайм-кодами...');
+
 
       const words = await subtitles.reTranscribe(editor.path);
       video.transcribed = words;
       await manager.save(video);
 
       await bot.sendMessage(user.id, 'Определяю, куда вставлять картинки...')
-      const determined = await insertionAI(video.images, words);
+      const determined = await insertImages(video.images, words);
 
 
       await bot.sendMessage(user.id, 'Добавляю субтитры...');

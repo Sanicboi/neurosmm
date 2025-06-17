@@ -27,5 +27,5 @@ export class User {
     @Column({
         default: 'none'
     })
-    waitingFor: 'none' | 'script' | 'images' | 'avatar' | 'voice';
+    waitingFor: 'none' | 'script' | 'images' | 'avatar' | 'voice' | 'segments';
 }

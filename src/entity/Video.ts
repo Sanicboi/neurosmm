@@ -4,6 +4,7 @@ import { Subtitles } from "./Subtitles";
 import { Avatar } from "./Avatar";
 import { Voice } from "./Voice";
 import { Image } from "./Image";
+import { Segment } from "./Segment";
 
 
 
@@ -63,7 +64,10 @@ export class Video {
     transcribed: string;
 
     @Column({
-        nullable: true
+        default: 'result.mp4'
     })
     basename: string;
+
+    @OneToMany(() => Segment, (segment) => segment.video)
+    segments: Segment[];
 }

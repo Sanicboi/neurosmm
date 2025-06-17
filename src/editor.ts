@@ -5,6 +5,7 @@ import ffmpeg from "fluent-ffmpeg";
 import { v4 } from "uuid";
 import { Subtitles } from "./entity/Subtitles";
 import generator from './subtitles';
+import { Segment } from "./entity/Segment";
 
 export interface IImage {
   source: Buffer;
@@ -28,12 +29,40 @@ export interface IImage {
 export class VideoEditor {
   private _path: string;
 
-  constructor(private _name: string, private _buffer: Buffer) {}
+  constructor(private _name: string, private _segments: Segment[]) {}
 
   public async init() {
     this._path = path.join(process.cwd(), "video", this._name);
-    await fs.writeFile(this._path, this._buffer);
-    return this;
+    let fileNames: string[] = [];
+    for (const segment of this._segments) {
+      const p = path.join(process.cwd(), 'video', 'seg-' + v4() + '.mp4');
+      await fs.writeFile(p, segment.data);
+      fileNames.push(p);
+    }
+
+    await new Promise((resolve, reject) => {
+      let cmd = ffmpeg();
+      for (const i of fileNames) {
+        cmd = cmd.input(i);
+      }
+      cmd.complexFilter([{
+        filter: 'concat',
+        options: {
+          n: fileNames.length,
+          v: 1,
+          a: 1
+        }
+      }])
+      .output(this._path)
+      .on('end', resolve)
+      .on('error', reject)
+      .run()
+    });
+
+    for (const i of fileNames) {
+      await fs.rm(i);
+    }
+
   }
 
   public async addImages(images: IImage[]): Promise<void> {
