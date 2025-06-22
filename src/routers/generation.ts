@@ -6,12 +6,11 @@ import { Avatar } from "../entity/Avatar";
 import sendVoices from "../helpers/sendVoices";
 import { Video } from "../entity/Video";
 import { Voice } from "../entity/Voice";
-import { Image } from "../entity/Image";
+import { Insertion } from "../entity/Insertion";
 import axios, { AxiosResponse } from "axios";
 import path from "path";
 import { heygen } from "../HeyGen";
-import { insertVideos } from "../insertionAI";
-import { Segment } from "../entity/Segment";
+import { getScript } from "../insertionAI";
 
 const manager = AppDataSource.manager;
 
@@ -122,7 +121,7 @@ export default async (bot: TelegramBot) => {
       const video = user.videos.find((el) => el.active);
       if (!video) return;
 
-      user.waitingFor = "images";
+      user.waitingFor = "insertions";
       await manager.save(user);
 
       video.height = height;
@@ -131,41 +130,7 @@ export default async (bot: TelegramBot) => {
       await bot.sendMessage(user.id, "Разрешение выбрано!");
       await bot.sendMessage(
         user.id,
-        "Теперь пришлите мне картинки для вставок. ВАЖНО - все картинки должны быть квадратными!"
-      );
-    }
-
-
-    if (q.data === "segments") {
-      const user = await manager.findOne(User, {
-        where: {
-          id: q.from.id,
-        },
-        relations: {
-          videos: true,
-        },
-      });
-      if (!user) return;
-      const video = user.videos.find((el) => el.active);
-      if (!video) return;
-
-      user.waitingFor = "segments";
-      await manager.save(user);
-      await bot.sendMessage(
-        user.id,
-        "Пришлите мне готовые сегменты. ВАЖНО! Все видео должны быть в формате .mp4",
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "Дальше",
-                  callback_data: "script",
-                },
-              ],
-            ],
-          },
-        }
+        "Теперь пришлите мне видео-вставки ВАЖНО: нужно присылать в таком же порядке, как вы хотите видеть их в видео."
       );
     }
 
@@ -184,57 +149,8 @@ export default async (bot: TelegramBot) => {
       if (!video) return;
       user.waitingFor = 'script';
       await manager.save(user);
-      await bot.sendMessage(user.id, 'Пришлите мне промпт с описанием скрипта видео, а также каждого сегмента. ВАЖНО! В ТОМ ЖЕ ПОРЯДКЕ, ЧТО И ДО ЭТОГО!!!')
+      await bot.sendMessage(user.id, 'Пришлите мне промпт с описанием скрипта видео, а также каждой вставки. ВАЖНО! В ТОМ ЖЕ ПОРЯДКЕ, ЧТО И ДО ЭТОГО!!!')
     }
-  });
-
-  bot.on("photo", async (msg) => {
-    if (!msg.photo) return;
-    if (!msg.from) return;
-    const user = await manager.findOne(User, {
-      where: {
-        id: msg.from.id,
-      },
-      relations: {
-        videos: true,
-      },
-    });
-
-    if (!user || user.waitingFor !== "images") return;
-    const video = user.videos.find((el) => el.active);
-    if (!video) return;
-
-    const [photo] = msg.photo.sort(
-      (a, b) => b.height * b.width - a.height * a.width
-    );
-
-    const url = await bot.getFileLink(photo.file_id);
-    const buffer: AxiosResponse<Buffer> = await axios.get(url, {
-      responseType: "arraybuffer",
-    });
-
-    const image = new Image();
-    image.basename = path.basename(url);
-    image.data = buffer.data;
-    image.video = video;
-    await manager.save(image);
-
-    await bot.sendMessage(
-      user.id,
-      'Фото добавлено! Пришлите мне еще или нажмите "Дальше"',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "Дальше",
-                callback_data: "segments",
-              },
-            ],
-          ],
-        },
-      }
-    );
   });
 
   bot.on("video", async (msg) => {
@@ -245,35 +161,38 @@ export default async (bot: TelegramBot) => {
       },
       relations: {
         videos: {
-          segments: true
+          insertions: true
         }
       },
     });
     if (!user) return;
     const video = user.videos.find((el) => el.active);
     if (!video) return;
-    if (user.waitingFor !== 'segments') return;
-    const segment = new Segment();
-    segment.video = video;
-    segment.index = video.segments.length;
+    if (user.waitingFor !== 'insertions') return;
+
     const url = await bot.getFileLink(msg.video.file_id);
-    segment.data = (
-      await axios.get(url, {
-        responseType: "arraybuffer",
-      })
-    ).data;
-    await manager.save(segment);
-    await bot.sendMessage(user.id, "Сегмент добавлен!", {
+
+
+    const insertion = new Insertion();
+    insertion.data = (await axios.get(url, {
+      responseType: 'arraybuffer'
+    })).data;
+    insertion.basename = path.basename(url);
+    insertion.video = video;
+    insertion.index = video.insertions.length;
+    await manager.save(insertion);
+
+    await bot.sendMessage(user.id, 'Вставка добавлена', {
       reply_markup: {
         inline_keyboard: [
           [
             {
-              text: "Дальше",
-              callback_data: "script",
-            },
-          ],
-        ],
-      },
+              text: 'Дальше',
+              callback_data: 'script'
+            }
+          ]
+        ]
+      }
     });
   });
 
@@ -296,20 +215,16 @@ export default async (bot: TelegramBot) => {
     const video = user.videos.find((el) => el.active);
     if (!video) return;
 
-    const res = await insertVideos(video.segments.sort((a, b) => a.id - b.id), msg.text);
-    for (let i = 0; i < res.length; i++) {
-      const current = res[i];
-      if (current.type === "ai") {
-        const segment = new Segment();
-        segment.video = video;
-        segment.index = i;
-        await manager.save(segment);
-        await heygen.generateVideo({
+    video.prompt = msg.text;
+    await manager.save(video);
+
+    const script = await getScript(video.prompt);
+    await heygen.generateVideo({
           dimension: {
             height: video.height,
             width: video.width,
           },
-          callback_id: String(segment.id),
+          callback_id: String(video.id),
           video_inputs: [
             {
               character: {
@@ -319,18 +234,13 @@ export default async (bot: TelegramBot) => {
               },
               voice: {
                 type: "text",
-                input_text: msg.text,
+                input_text: script,
                 voice_id: video.voice.heygenId,
                 speed: 1.1,
               },
             },
           ],
         });
-      } else {
-        current.insertion.index = i;
-        await manager.save(current);
-      }
-    }
     await bot.sendMessage(user.id, "Генерирую видео...");
   });
 };

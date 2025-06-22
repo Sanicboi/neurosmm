@@ -3,8 +3,7 @@ import { User } from "./User";
 import { Subtitles } from "./Subtitles";
 import { Avatar } from "./Avatar";
 import { Voice } from "./Voice";
-import { Image } from "./Image";
-import { Segment } from "./Segment";
+import { Insertion } from "./Insertion";
 
 
 
@@ -35,8 +34,8 @@ export class Video {
     })
     voice: Voice;
 
-    @OneToMany(() => Image, (image) => image.video)
-    images: Image[];
+    @OneToMany(() => Insertion, (insertion) => insertion.video)
+    insertions: Insertion[];
 
     @Column({
         default: 1080
@@ -68,6 +67,8 @@ export class Video {
     })
     basename: string;
 
-    @OneToMany(() => Segment, (segment) => segment.video)
-    segments: Segment[];
+    @Column({
+        default: ''
+    })
+    prompt: string;
 }

@@ -4,8 +4,8 @@ import { Readable, Writable } from "stream";
 import ffmpeg from "fluent-ffmpeg";
 import { v4 } from "uuid";
 import { Subtitles } from "./entity/Subtitles";
-import generator from './subtitles';
-import { Segment } from "./entity/Segment";
+import generator from "./subtitles";
+import { Insertion } from "./entity/Insertion";
 
 export interface IImage {
   source: Buffer;
@@ -29,126 +29,65 @@ export interface IImage {
 export class VideoEditor {
   private _path: string;
 
-  constructor(private _name: string, private _segments: Segment[]) {}
+  constructor(private _name: string, private _data: Buffer) {}
 
   public async init() {
     this._path = path.join(process.cwd(), "video", this._name);
-    let fileNames: string[] = [];
-    for (const segment of this._segments) {
-      const p = path.join(process.cwd(), 'video', 'seg-' + v4() + '.mp4');
-      await fs.writeFile(p, segment.data);
-      fileNames.push(p);
-    }
-
-    await new Promise((resolve, reject) => {
-      let cmd = ffmpeg();
-      for (const i of fileNames) {
-        cmd = cmd.input(i);
-      }
-      cmd.complexFilter([{
-        filter: 'concat',
-        options: {
-          n: fileNames.length,
-          v: 1,
-          a: 1
-        }
-      }])
-      .output(this._path)
-      .on('end', resolve)
-      .on('error', reject)
-      .run()
-    });
-
-    for (const i of fileNames) {
-      await fs.rm(i);
-    }
-
+    await fs.writeFile(this._path, this._data);
   }
 
-  public async addImages(images: IImage[]): Promise<void> {
-    for (let i = 0; i < images.length; i++) {
-      images[i].source = await this.scaleDownImage(
-        images[i].source,
-        images[i].extension
-      );
-    }
+  public async addVideoOverlay(insertion: Insertion, from: number, to: number) {
+    const name = path.join(
+      process.cwd(),
+      "video",
+      `insertion-${insertion.basename}`
+    );
+    const out = path.join(process.cwd(), "video", `${v4()}-${this._name}`);
 
-    for (let i = 0; i < images.length; i++) {
-      await this.addImageOverlay(images[i]);
-    }
+    await fs.writeFile(name, insertion.data);
+    await new Promise((resolve, reject) => {
+      ffmpeg()
+        .addInput(this._path)
+        .addInput(name)
+        .complexFilter({
+          filter: "overlay",
+          options: {
+            enable: `between(t\\,${from}\\,${to})`,
+          },
+          inputs: "[0:v][1:v]",
+          outputs: "[v]",
+        })
+        .outputOptions([
+          "-map [v]", 
+          "-map 0:a", 
+          "-c:v libx264",
+          "-c:a aac",
+          "-shortest",
+        ])
+        .output(out)
+        .on('end', resolve)
+        .on('error', reject)
+        .run();
+    });
+
+    await fs.rm(name);
+    await fs.rm(this._path);
+    this._path = out;
   }
 
   public get path() {
     return this._path;
   }
 
-  private async scaleDownImage(
-    buffer: Buffer,
-    extname: string
-  ): Promise<Buffer> {
-    const basename = `${v4()}${extname}`;
-    const inputPath = path.join(process.cwd(), "images", `input-${basename}`);
-    const outputPath = path.join(process.cwd(), "images", `output-${basename}`);
-    await fs.writeFile(inputPath, buffer);
-    await new Promise((resolve, reject) => {
-      ffmpeg(inputPath)
-        .videoFilters([
-          {
-            filter: "scale",
-            options: "512:512",
-          },
-        ])
-        .on("error", reject)
-        .on("end", resolve)
-        .output(outputPath)
-        .run();
-    });
-    const b = await fs.readFile(outputPath);
-    await fs.rm(inputPath);
-    await fs.rm(outputPath);
-    return b;
-  }
-
-  private async addImageOverlay(image: IImage): Promise<void> {
-    const imagePath = path.join(
-      process.cwd(),
-      "images",
-      `input-${v4()}${image.extension}`
+  public async addSubtitles(
+    subtitles: Subtitles,
+    words: string
+  ): Promise<void> {
+    const assPath: string = await generator.generate(
+      subtitles,
+      JSON.parse(words),
+      this._path
     );
-    await fs.writeFile(imagePath, image.source);
-
-    const outputPath = path.join(
-      process.cwd(),
-      "video",
-      `${v4()}${this._name}`
-    );
-
-    await new Promise((resolve, reject) => {
-      ffmpeg(this._path)
-        .input(imagePath)
-        .complexFilter([
-          {
-            filter: "overlay",
-            options: {
-              x: "(main_w-overlay_w)/2",
-              y: "(main_h-overlay_h)/2",
-              enable: `between(t\\,${image.from}\\,${image.to})`,
-            },
-          },
-        ])
-        .output(outputPath)
-        .on("error", reject)
-        .on("end", resolve)
-        .run();
-    });
-
-    await fs.rm(imagePath);
-    await fs.rm(this._path);
-    this._path = outputPath;
-  }
-
-  public async addSubtitles(subtitles: Subtitles, words: string): Promise<void> {
-    const assPath: string = await generator.generate(subtitles, JSON.parse(words), this._path);
 
     const outputPath = path.join(
       process.cwd(),

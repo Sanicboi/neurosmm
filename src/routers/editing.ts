@@ -4,12 +4,12 @@ import { User } from "../entity/User";
 import { Subtitles } from "../entity/Subtitles";
 import { VideoEditor } from "../editor";
 import subtitles from "../subtitles";
-import { insertImages } from "../insertionAI";
+import { getInsertions } from "../insertionAI";
 
 const manager = AppDataSource.manager;
 export default async (bot: TelegramBot) => {
   bot.on("callback_query", async (q) => {
-    if (q.data?.startsWith("edit-")) {
+    if (q.data === 'edit') {
       const user = await manager.findOne(User, {
         where: {
           id: q.from.id,
@@ -21,7 +21,7 @@ export default async (bot: TelegramBot) => {
       });
       if (!user) return;
       const id = +q.data.split("-")[1];
-      const video = user.videos.find((el) => el.id === id && el.active);
+      const video = user.videos.find((el) => el.active);
       if (!video) return;
 
       await bot.sendMessage(q.from.id, "Выберите субтитры", {
@@ -44,7 +44,7 @@ export default async (bot: TelegramBot) => {
         },
         relations: {
           videos: {
-            images: true,
+            insertions: true,
             subtitles: true
           },
         },
@@ -60,8 +60,7 @@ export default async (bot: TelegramBot) => {
       await manager.save(video);
 
       await bot.sendMessage(user.id, 'Редактирую видео...');
-      await bot.sendMessage(user.id, 'Объединяю сегменты...')
-      const editor = new VideoEditor(video.basename, video.segments);
+      const editor = new VideoEditor(video.basename, video.file!);
       await editor.init();
 
       await bot.sendMessage(user.id, 'Ретранскрибирую видео с тайм-кодами...');
@@ -71,15 +70,16 @@ export default async (bot: TelegramBot) => {
       video.transcribed = words;
       await manager.save(video);
 
-      await bot.sendMessage(user.id, 'Определяю, куда вставлять картинки...')
-      const determined = await insertImages(video.images, words);
+      await bot.sendMessage(user.id, 'Добавляю вставки...')
+      const whereToAdd = await getInsertions(video.prompt, video.transcribed, video.insertions);
+      for (const i of whereToAdd) {
+        await editor.addVideoOverlay(i.insertion, i.from, i.to);
+      }
 
 
       await bot.sendMessage(user.id, 'Добавляю субтитры...');
       await editor.addSubtitles(video.subtitles, words);
 
-      await bot.sendMessage(user.id, 'Вставляю картинки...');
-      await editor.addImages(determined);
       
       const result = await editor.getBuffer();
       await editor.cleanup();

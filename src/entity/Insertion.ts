@@ -3,7 +3,7 @@ import { Video } from "./Video";
 
 
 @Entity()
-export class Image {
+export class Insertion {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -15,8 +15,11 @@ export class Image {
     })
     data: Buffer;
 
-    @ManyToOne(() => Video, (video) => video.images, {
+    @ManyToOne(() => Video, (video) => video.insertions, {
         onDelete: 'CASCADE'
     })
     video: Video;
+
+    @Column()
+    index: number;
 }
