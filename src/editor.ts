@@ -6,6 +6,7 @@ import { v4 } from "uuid";
 import { Subtitles } from "./entity/Subtitles";
 import generator from "./subtitles";
 import { Insertion } from "./entity/Insertion";
+import { Fragment } from "./entity/Fragment";
 
 export interface IImage {
   source: Buffer;
@@ -117,6 +118,26 @@ export class VideoEditor {
 
   public async cleanup() {
     await fs.rm(this._path);
+  }
+
+  public async pushVideo(fragment: Fragment): Promise<void> {
+    const fragPath = `${fragment.index}.mp4`;
+    const out = path.join(process.cwd(), "video", `${v4()}-${this._name}`);
+
+    await fs.writeFile(path.join(process.cwd(), 'video', fragPath), fragment.data);
+    await new Promise((resolve, reject) => {
+      ffmpeg()
+        .mergeAdd(this._path)
+        .mergeAdd(fragPath)
+        .output(out)
+        .on('end', resolve)
+        .on('error', reject)
+        .run();
+    });
+
+    await fs.rm(fragPath);
+    await fs.rm(this._path);
+    this._path = out;
   }
 
   public async getBuffer(): Promise<Buffer> {

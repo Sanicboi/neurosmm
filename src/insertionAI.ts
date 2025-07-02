@@ -1,10 +1,6 @@
 import { z } from "zod";
-import { IImage } from "./editor";
 import { openai } from ".";
-import type { ResponseInputContent } from "openai/resources/responses/responses";
 import { zodTextFormat } from "openai/helpers/zod";
-import path from "path";
-import { Video } from "./entity/Video";
 import { Insertion } from "./entity/Insertion";
 
 const Script = z.object({
@@ -19,6 +15,16 @@ const Insertions = z.object({
     })
   ),
 });
+
+const Fragments = z.object({
+  fragments: z.array(
+    z.object({
+      type: z.enum(['avatar', 'ai']),
+      script: z.optional(z.string()),
+      prompt: z.optional(z.string())
+    })
+  )
+})
 
 export const getScript = async (prompt: string): Promise<string> => {
   const res = await openai.responses.parse({
@@ -91,3 +97,24 @@ export const getInsertions = async (
 
   return result;
 };
+
+export const splitterAI = async (
+  prompt: string
+): Promise<{
+  type: 'ai' | 'avatar',
+  script?: string,
+  prompt?: string
+}[]> => {
+  let result = [];
+  const res = await openai.responses.parse({
+    instructions: 'Ты - профессиональный режиссер. Тебе будет дан промпт-сценарий для видео. Твоя задача - продумать его и разбить его на части. Каждая часть - это либо видео с ии-аватаром, где он говорит определенный текст, либо видео, сгенерированное с помощью ИИ. В ответе определи данные фрагменты и дай их описание. Для аватара нужно дать его слова, для ии-видео - промпт для нейросети.',
+    input: prompt,
+    model: 'gpt-4.1',
+    store: false,
+    text: {
+      format: zodTextFormat(Fragments, 'result')
+    }
+  });
+  if (!res.output_parsed) throw new Error("Could not parse");
+  return res.output_parsed.fragments;
+}

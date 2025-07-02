@@ -4,6 +4,7 @@ import { Subtitles } from "./Subtitles";
 import { Avatar } from "./Avatar";
 import { Voice } from "./Voice";
 import { Insertion } from "./Insertion";
+import { Fragment } from "./Fragment";
 
 
 
@@ -24,6 +25,11 @@ export class Video {
     })
     subtitles: Subtitles;
 
+    @Column({
+        default: 'gen'
+    })
+    insertionsType: 'gen' | 'custom';
+
     @ManyToOne(() => Avatar, (avatar) => avatar.videos, {
         nullable: true
     })
@@ -36,6 +42,9 @@ export class Video {
 
     @OneToMany(() => Insertion, (insertion) => insertion.video)
     insertions: Insertion[];
+
+    @OneToMany(() => Fragment, (fragment) => fragment.video)
+    fragments: Fragment[];
 
     @Column({
         default: 1080

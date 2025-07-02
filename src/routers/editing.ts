@@ -9,7 +9,7 @@ import { getInsertions } from "../insertionAI";
 const manager = AppDataSource.manager;
 export default async (bot: TelegramBot) => {
   bot.on("callback_query", async (q) => {
-    if (q.data === 'edit') {
+    if (q.data === "edit") {
       const user = await manager.findOne(User, {
         where: {
           id: q.from.id,
@@ -20,7 +20,7 @@ export default async (bot: TelegramBot) => {
         },
       });
       if (!user) return;
-      const id = +q.data.split("-")[1];
+
       const video = user.videos.find((el) => el.active);
       if (!video) return;
 
@@ -45,7 +45,8 @@ export default async (bot: TelegramBot) => {
         relations: {
           videos: {
             insertions: true,
-            subtitles: true
+            subtitles: true,
+            fragments: true,
           },
         },
       });
@@ -53,46 +54,59 @@ export default async (bot: TelegramBot) => {
       const video = user.videos.find((el) => el.active);
       if (!video) return;
       const subs = await manager.findOneBy(Subtitles, {
-        id
+        id,
       });
+      video.fragments = video.fragments.sort((a, b) => a.index - b.index)
       if (!subs) return;
       video.subtitles = subs;
       await manager.save(video);
 
-      await bot.sendMessage(user.id, 'Редактирую видео...');
-      const editor = new VideoEditor(video.basename, video.file!);
+      await bot.sendMessage(user.id, "Редактирую видео...");
+      const editor = new VideoEditor(video.basename ?? 'video.mp4', video.file ?? video.fragments[0].data);
       await editor.init();
+      let words: string;
+      await bot.sendMessage(user.id, "Добавляю вставки...");
+      
+      if (video.insertionsType === "custom") {
+        words = await subtitles.reTranscribe(editor.path);
+        const whereToAdd = await getInsertions(
+          video.prompt,
+          words,
+          video.insertions
+        );
+        for (const i of whereToAdd) {
+          await editor.addVideoOverlay(i.insertion, i.from, i.to);
+        }
+      } else {
+        for (let i = 0; i < video.fragments.length; i++) {
+          if (i === 0) continue;
+          await editor.pushVideo(video.fragments[i]);
+        }
 
-      await bot.sendMessage(user.id, 'Ретранскрибирую видео с тайм-кодами...');
-
-
-      const words = await subtitles.reTranscribe(editor.path);
-      video.transcribed = words;
-      await manager.save(video);
-
-      await bot.sendMessage(user.id, 'Добавляю вставки...')
-      const whereToAdd = await getInsertions(video.prompt, video.transcribed, video.insertions);
-      for (const i of whereToAdd) {
-        await editor.addVideoOverlay(i.insertion, i.from, i.to);
+        words = await subtitles.reTranscribe(editor.path);
       }
 
 
-      await bot.sendMessage(user.id, 'Добавляю субтитры...');
+
+      await bot.sendMessage(user.id, "Добавляю субтитры...");
       await editor.addSubtitles(video.subtitles, words);
 
-      
       const result = await editor.getBuffer();
       await editor.cleanup();
-
 
       video.active = false;
       video.file = result;
       await manager.save(video);
-      await bot.sendVideo(user.id, result, {
-        caption: 'Ваше видео',
-      }, {
-        filename: video.basename
-      });
+      await bot.sendVideo(
+        user.id,
+        result,
+        {
+          caption: "Ваше видео",
+        },
+        {
+          filename: video.basename,
+        }
+      );
     }
   });
 };

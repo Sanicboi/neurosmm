@@ -24,6 +24,7 @@ export class User {
     subtitles: Subtitles[];
 
 
+
     @Column({
         default: 'none'
     })

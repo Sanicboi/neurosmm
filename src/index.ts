@@ -18,6 +18,7 @@ import editing from "./routers/editing";
 import { generateKey } from "crypto";
 import generation from "./routers/generation";
 import settings from "./routers/settings";
+import { Fragment } from "./entity/Fragment";
 
 export const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
@@ -50,31 +51,77 @@ AppDataSource.initialize()
         res
       ) => {
         if (req.body.event_type === "avatar_video.success") {
-          const video = await manager.findOne(Video, {
-            where: {
-              id: Number(req.body.event_data.callback_id)
-            },
-            relations: {
-              user: true,
+          if (!req.body.event_data.callback_id.startsWith("frag-")) {
+            const video = await manager.findOne(Video, {
+              where: {
+                id: Number(req.body.event_data.callback_id),
+              },
+              relations: {
+                user: true,
+              },
+            });
+            if (!video) return;
+            video.file = (
+              await axios.get(req.body.event_data.url, {
+                responseType: "arraybuffer",
+              })
+            ).data;
+            await manager.save(video);
+            await bot.sendMessage(video.user.id, "Видео создано!", {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: "Перейти к редактированию",
+                      callback_data: "edit",
+                    },
+                  ],
+                ],
+              },
+            });
+          } else {
+            const fragment = await manager.findOne(Fragment, {
+              where: {
+                id: Number(req.body.event_data.callback_id.split("-")[1]),
+              },
+              relations: {
+                video: {
+                  user: true,
+                  fragments: true,
+                },
+              },
+            });
+
+            if (!fragment) return;
+            fragment.data = (
+              await axios.get(req.body.event_data.url, {
+                responseType: "arraybuffer",
+              })
+            ).data;
+            await manager.save(fragment);
+
+            if (
+              fragment.video.fragments.filter((el) => el.finished).length ===
+              fragment.video.fragments.length
+            ) {
+              await bot.sendMessage(
+                fragment.video.user.id,
+                "Все фрагменты готовы",
+                {
+                  reply_markup: {
+                    inline_keyboard: [
+                      [
+                        {
+                          text: "Перейти к монтажу",
+                          callback_data: `edit`,
+                        },
+                      ],
+                    ],
+                  },
+                }
+              );
             }
-          });
-          if (!video) return;
-          video.file = (await axios.get(req.body.event_data.url, {
-            responseType: 'arraybuffer'
-          })).data;
-          await manager.save(video);
-          await bot.sendMessage(video.user.id, 'Видео создано!', {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: 'Перейти к редактированию',
-                    callback_data: 'edit'
-                  }
-                ]
-              ]
-            }
-          })
+          }
         }
       }
     );
