@@ -6,6 +6,7 @@ import { Subtitles } from "./entity/Subtitles"
 import { Avatar } from "./entity/Avatar"
 import { Voice } from "./entity/Voice"
 import { Insertion } from "./entity/Insertion"
+import { Fragment } from "./entity/Fragment"
 
 export const AppDataSource = new DataSource({
     type: "postgres",
@@ -16,7 +17,7 @@ export const AppDataSource = new DataSource({
     database: "test",
     synchronize: true,
     logging: false,
-    entities: [User, Video, Subtitles, Avatar, Voice, Insertion],
+    entities: [User, Video, Subtitles, Avatar, Voice, Insertion, Fragment],
     migrations: [],
     subscribers: [],
 })
