@@ -12,10 +12,10 @@ export const genVideo = async (prompt: string): Promise<Buffer> => {
         camera_fixed: false,
     }, {
         headers: {
-            'x-api-key': `Bearer ${process.env.SEGMIND_KEY}`
+            'x-api-key': `${process.env.SEGMIND_KEY}`
         },
         responseType: 'arraybuffer'
     });
 
-    return Buffer.from(res.data, 'base64');
+    return Buffer.from(res.data);
 }
