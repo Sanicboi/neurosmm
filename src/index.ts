@@ -100,6 +100,7 @@ AppDataSource.initialize()
                 responseType: "arraybuffer",
               })
             ).data;
+            fragment.finished = true;
             await manager.save(fragment);
 
             if (
