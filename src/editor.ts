@@ -128,7 +128,7 @@ export class VideoEditor {
     await new Promise((resolve, reject) => {
       ffmpeg()
         .mergeAdd(this._path)
-        .mergeAdd(fragPath)
+        .mergeAdd(path.join(process.cwd(), 'video', fragPath))
         .output(out)
         .on('end', resolve)
         .on('error', reject)
