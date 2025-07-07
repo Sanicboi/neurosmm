@@ -152,7 +152,7 @@ export class VideoEditor {
         .run();
     });
 
-    await fs.rm(fragPath);
+    await fs.rm(path.join(process.cwd(), "video", fragPath));
     await fs.rm(this._path);
     this._path = out;
   }
