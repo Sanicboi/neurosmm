@@ -59,15 +59,15 @@ export class VideoEditor {
           outputs: "[v]",
         })
         .outputOptions([
-          "-map [v]", 
-          "-map 0:a", 
+          "-map [v]",
+          "-map 0:a",
           "-c:v libx264",
           "-c:a aac",
           "-shortest",
         ])
         .output(out)
-        .on('end', resolve)
-        .on('error', reject)
+        .on("end", resolve)
+        .on("error", reject)
         .run();
     });
 
@@ -124,14 +124,27 @@ export class VideoEditor {
     const fragPath = `${fragment.index}.mp4`;
     const out = path.join(process.cwd(), "video", `${v4()}-${this._name}`);
 
-    await fs.writeFile(path.join(process.cwd(), 'video', fragPath), fragment.data);
+    await fs.writeFile(
+      path.join(process.cwd(), "video", fragPath),
+      fragment.data
+    );
     await new Promise((resolve, reject) => {
       ffmpeg()
-        .mergeAdd(this._path)
-        .mergeAdd(path.join(process.cwd(), 'video', fragPath))
+        .input(this._path)
+        .input(path.join(process.cwd(), "video", fragPath))
+        .complexFilter([
+          {
+            filter: "concat",
+            options: {
+              n: 2, // number of input videos
+              v: 1, // number of video streams output
+              a: 1, // number of audio streams output
+            },
+          },
+        ])
         .output(out)
-        .on('end', resolve)
-        .on('error', reject)
+        .on("end", resolve)
+        .on("error", reject)
         .run();
     });
 
