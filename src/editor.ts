@@ -133,15 +133,19 @@ export class VideoEditor {
         .input(this._path)
         .input(path.join(process.cwd(), "video", fragPath))
         .complexFilter([
-          {
-            filter: "concat",
-            options: {
-              n: 2, // number of input videos
-              v: 1, // number of video streams output
-              a: 1, // number of audio streams output
-            },
-          },
+          // scale and set fps for both videos, set aformat for both audios
+          `[0:v]scale=${720}:${1280},fps=${30}[v0];` +
+            `[1:v]scale=${720}:${1280},fps=${30}[v1];` +
+            `[0:a]aformat=sample_rates=${48000}:channel_layouts=stereo[a0];` +
+            `[1:a]aformat=sample_rates=${48000}:channel_layouts=stereo[a1];` +
+            // now concat the standardized streams
+            `[v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a]`,
         ])
+          .outputOptions([
+    '-map [v]',
+    '-map [a]',
+    '-movflags +faststart'
+  ])
         .output(out)
         .on("end", resolve)
         .on("error", reject)
