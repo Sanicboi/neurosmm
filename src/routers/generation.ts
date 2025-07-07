@@ -306,6 +306,7 @@ export default async (bot: TelegramBot) => {
 
       let idx = 0;
       for (const part of script) {
+        console.log(part);
         const fragment = new Fragment();
         fragment.video = video;
         fragment.type = part.type;
