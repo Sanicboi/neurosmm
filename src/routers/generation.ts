@@ -259,6 +259,7 @@ export default async (bot: TelegramBot) => {
         videos: {
           avatar: true,
           voice: true,
+          fragments: true
         },
       },
     });
