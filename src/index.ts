@@ -105,7 +105,7 @@ AppDataSource.initialize()
 
             if (
               fragment.video.fragments.filter((el) => el.finished).length ===
-              fragment.video.fragments.length
+              fragment.video.fragments.length - 1
             ) {
               await bot.sendMessage(
                 fragment.video.user.id,
