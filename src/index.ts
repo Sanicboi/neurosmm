@@ -80,6 +80,7 @@ AppDataSource.initialize()
               },
             });
           } else {
+            
             const fragment = await manager.findOne(Fragment, {
               where: {
                 id: Number(req.body.event_data.callback_id.split("-")[1]),
@@ -93,6 +94,7 @@ AppDataSource.initialize()
             });
 
             if (!fragment) return;
+            await bot.sendMessage(fragment.video.user.id, 'Фрагмент готов.');
             fragment.data = (
               await axios.get(req.body.event_data.url, {
                 responseType: "arraybuffer",

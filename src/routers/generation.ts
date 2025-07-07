@@ -340,8 +340,6 @@ export default async (bot: TelegramBot) => {
           fragment.data = result;
           fragment.finished = true;
           await manager.save(fragment);
-
-
         }
 
         video.fragments.push(fragment);
