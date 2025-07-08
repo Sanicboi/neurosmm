@@ -3,16 +3,17 @@ import axios, { AxiosResponse } from "axios"
 
 
 export const genVideo = async (prompt: string): Promise<Buffer> => {
-    const res: AxiosResponse<any> = await axios.post('https://api.segmind.com/v1/seedance-v1-lite-text-to-video', {
+    const res: AxiosResponse<any> = await axios.post('https://api.segmind.com/v1/veo-3', {
         duration: 5,
         aspect_ratio: '9:16',
         prompt,
         resolution: '720p',
         seed: 56698,
         camera_fixed: false,
+        generate_audio: true
     }, {
         headers: {
-            'x-api-key': `${process.env.SEGMIND_KEY}`
+            'x-api-key': process.env.SEGMIND_KEY
         },
         responseType: 'arraybuffer'
     });
