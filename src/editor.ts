@@ -123,6 +123,7 @@ export class VideoEditor {
   public async pushVideo(fragment: Fragment): Promise<void> {
     const fragPath = `${fragment.index}.mp4`;
     const out = path.join(process.cwd(), "video", `${v4()}-${this._name}`);
+    console.log(out);
 
     await fs.writeFile(
       path.join(process.cwd(), "video", fragPath),
@@ -141,11 +142,14 @@ export class VideoEditor {
             // now concat the standardized streams
             `[v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a]`,
         ])
-          .outputOptions([
-    '-map [v]',
-    '-map [a]',
-    '-movflags +faststart'
-  ])
+        .outputOptions([
+          "-map [v]",
+          "-map [a]",
+          "-movflags +faststart",
+          "-f mp4",
+          "-c:v libx264",
+          "-c:a aac",
+        ])
         .output(out)
         .on("end", resolve)
         .on("error", reject)

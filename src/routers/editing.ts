@@ -62,7 +62,7 @@ export default async (bot: TelegramBot) => {
       await manager.save(video);
 
       await bot.sendMessage(user.id, "Редактирую видео...");
-      const editor = new VideoEditor(video.basename ?? 'video.mp4', video.file ?? video.fragments[0].data);
+      const editor = new VideoEditor('video.mp4', video.file ?? video.fragments[0].data);
       await editor.init();
       let words: string;
       await bot.sendMessage(user.id, "Добавляю вставки...");
