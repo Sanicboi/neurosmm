@@ -46,6 +46,43 @@ class SubtitleGenerator {
       .padStart(2, "0")}.${centis.toString().padStart(2, "0")}`;
   }
 
+  private combineWords(
+    words: {
+      text: string;
+      start: number;
+      end: number;
+    }[]
+  ): {
+    text: string;
+    start: number;
+    end: number;
+  }[] {
+    return words.reduce<
+      {
+        text: string;
+        start: number;
+        end: number;
+      }[]
+    >((a, curr) => {
+      if (a.length === 0) {
+        a.push(curr);
+        return a;
+      }
+
+      const duration = curr.end - curr.start;
+      const last = a.length - 1;
+      const lastDuration = a[last].end - a[last].start;
+      if (lastDuration + duration < 3) {
+        a[last].end = curr.end;
+        a[last].text += " " + curr.text;
+      } else {
+        a.push(curr);
+      }
+
+      return a;
+    }, []);
+  }
+
   private generateASS(
     words: {
       text: string;
@@ -67,39 +104,12 @@ class SubtitleGenerator {
 
   [V4+ Styles]
   Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-  Style: Default,${subtitles.fontFamily},${subtitles.fontSize},&H${subtitles.color},&HFFFFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,2,2,${subtitles.marginL},${subtitles.marginR},${subtitles.marginV},0
+  Style: Default,Vela Sans,${subtitles.fontSize},&H00baff,&HFFFFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,2,2,${subtitles.marginL},${subtitles.marginR},${subtitles.marginV},0
 
   [Events]
   Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   `;
-    const events = words
-      .reduce<
-        {
-          text: string;
-          start: number;
-          end: number;
-        }[]
-      >(
-        (
-          a: {
-            text: string;
-            start: number;
-            end: number;
-          }[],
-          el
-        ) => {
-          const idx = a.length - 1;
-          if (idx === -1 || !(a[idx].text.length < 7 && el.text.length < 7)) {
-            a.push(el);
-          } else {
-            a[idx].text += " " + el.text;
-            a[idx].end = el.end;
-          }
-
-          return a;
-        },
-        []
-      )
+    const events = this.combineWords(words)
       .map(
         (s) =>
           `Dialogue: 0,${this.formatTimeASS(s.start)},${this.formatTimeASS(
@@ -151,7 +161,6 @@ class SubtitleGenerator {
     }[],
     videoPath: string
   ): Promise<string> {
-
     // get the dimensions
     const dimension = await this.getDimensions(videoPath);
 
@@ -187,6 +196,5 @@ class SubtitleGenerator {
     return Buffer.from(content, "utf-8");
   }
 }
-
 
 export default new SubtitleGenerator();
