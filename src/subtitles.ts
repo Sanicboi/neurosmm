@@ -104,9 +104,9 @@ class SubtitleGenerator {
 
   [V4+ Styles]
   Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-  Style: Default,Vela Sans,${subtitles.fontSize},&H00baff,&HFFFFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,2,2,${subtitles.marginL},${subtitles.marginR},${subtitles.marginV},0
+  Style: Default,Vela Sans,40,&H00baff,&HFFFFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,2,2,${subtitles.marginL},${subtitles.marginR},${subtitles.marginV},0
 
-  [Events]
+  [Events
   Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
   `;
     const events = this.combineWords(words)

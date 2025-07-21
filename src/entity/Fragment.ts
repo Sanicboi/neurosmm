@@ -32,5 +32,10 @@ export class Fragment {
     })
     data: Buffer;
 
+    @Column({
+        nullable: true
+    })
+    content: string;
+
 
 }
