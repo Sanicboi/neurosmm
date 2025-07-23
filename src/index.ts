@@ -235,7 +235,7 @@ AppDataSource.initialize()
           msg.chat.id,
           `Анализ:\nРечь ИИ-Аватара:${
             analysis.script
-          }\n\nПромпты для вставок:\n${analysis.insertions.join("\n")}`
+          }\n\nПромпты для вставок:\n${analysis.insertions.join("\n\n")}`
         );
 
         const video = new Video();
