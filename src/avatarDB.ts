@@ -58,7 +58,7 @@ export class Avatar {
 class AvatarDatabase {
 
     private avatars: Avatar[];
-    private filePath: string = path.join(process.cwd(), 'avatars.json');
+    private filePath: string = path.join(process.cwd(), 'avatars', 'avatars.json');
 
     constructor() {
         const avatars: {
