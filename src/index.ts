@@ -119,6 +119,10 @@ AppDataSource.initialize()
       {
         command: 'add',
         description: 'Добавить аватар'
+      },
+      {
+        command: 'preview',
+        description: 'Превью аватаров'
       }
     ]);
 
@@ -321,6 +325,20 @@ AppDataSource.initialize()
         });
       }
     });
+
+    bot.onText(/\/preview/, async (msg) => {
+      const avatars = db.getAll();
+      for (const avatar of avatars) {
+        const photo = await avatar.getImagePreview();
+        const audio = await avatar.getVoicePreview();
+        await bot.sendPhoto(msg.chat.id, photo, {
+          caption: `Аватар: ${avatar.name}`
+        });
+        await bot.sendAudio(msg.chat.id, audio, {
+          caption:  `Голос аватара ${avatar.name}`
+        });
+      }
+    })
 
     bot.onText(/\/add/, async (msg) => {
       waiter = Waiter.Avatar;
