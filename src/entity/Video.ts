@@ -1,83 +1,44 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
-import { User } from "./User";
-import { Subtitles } from "./Subtitles";
-import { Avatar } from "./Avatar";
-import { Voice } from "./Voice";
 import { Insertion } from "./Insertion";
-import { Fragment } from "./Fragment";
 
 
 
 @Entity() 
 export class Video {
 
-
     @PrimaryGeneratedColumn()
     id: number;
 
-
-
-    @ManyToOne(() => User, (user) => user.videos)
-    user: User;
-
-    @ManyToOne(() => Subtitles, (subtitles) => subtitles.videos, {
+    @Column({
         nullable: true
     })
-    subtitles: Subtitles;
-
-    @Column({
-        default: 'gen'
-    })
-    insertionsType: 'gen' | 'custom';
-
-    @ManyToOne(() => Avatar, (avatar) => avatar.videos, {
-        nullable: true
-    })
-    avatar: Avatar;
-
-    @ManyToOne(() => Voice, (voice) => voice.videos, {
-        nullable: true
-    })
-    voice: Voice;
-
-    @OneToMany(() => Insertion, (insertion) => insertion.video)
-    insertions: Insertion[];
-
-    @OneToMany(() => Fragment, (fragment) => fragment.video)
-    fragments: Fragment[];
-
-    @Column({
-        default: 1080
-    })
-    width: number;
-
-    @Column({
-        default: 1920
-    })
-    height: number;
-
-    @Column({
-        default: false
-    })
-    active: boolean;
+    chatId: string;
 
     @Column('bytea', {
         nullable: true
     })
-    file: Buffer | null;
+    buffer: Buffer;
 
     @Column({
         nullable: true
     })
-    transcribed: string;
+    avatarId: string;
 
     @Column({
-        default: 'result.mp4'
+        nullable: true
     })
-    basename: string;
+    voiceId: string;
 
     @Column({
-        default: ''
+        nullable: true
     })
-    prompt: string;
+    avatarType: 'avatar' | 'talking_photo';
+
+    @OneToMany(() => Insertion, (insertion) => insertion.video)
+    insertions: Insertion[];
+
+    @Column({
+        default: false
+    })
+    finished: boolean;
 }

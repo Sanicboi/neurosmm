@@ -7,19 +7,28 @@ export class Insertion {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    basename: string;
-
-    @Column('bytea', {
-        nullable: true
-    })
-    data: Buffer;
-
     @ManyToOne(() => Video, (video) => video.insertions, {
         onDelete: 'CASCADE'
     })
     video: Video;
 
-    @Column()
-    index: number;
+    @Column('bytea', {
+        nullable: true
+    })
+    buffer: Buffer;
+
+    @Column({
+        nullable: true
+    })
+    duration: number;
+
+    @Column({
+        nullable: true
+    })
+    prompt: string;
+
+    @Column({
+        nullable: true
+    })
+    start: number;
 }

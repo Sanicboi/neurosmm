@@ -1,7 +1,8 @@
 import axios, { Axios, AxiosResponse } from "axios";
+import { AvatarType } from "./avatarDB";
 
 export interface IAvatar {
-    type: 'avatar';
+    type: AvatarType.Avatar;
     avatar_id: string;
     avatar_name: string;
     gender: string;
@@ -12,7 +13,7 @@ export interface IAvatar {
 
 export interface ISingleAvatar {
     id: string;
-    type: 'avatar' | 'talking_photo';
+    type: AvatarType;
     name: string;
     gender: string;
     preview_video_url: string;
@@ -20,7 +21,7 @@ export interface ISingleAvatar {
 }
 
 export interface ITalkingPhoto {
-    type: 'talking_photo'
+    type: AvatarType.TalkingPhoto;
     talking_photo_id: string;
     talking_photo_name: string;
     preview_image_url: string;
@@ -43,7 +44,7 @@ export interface ICreateVideo {
     callback_id?: string;
     video_inputs: {
         character?: {
-            type: 'avatar' | 'talking_photo';
+            type: AvatarType;
             avatar_id?: string;
             scale?: number;
             avatar_style?: 'circle' | 'normal' | 'closeup';
@@ -98,13 +99,13 @@ class HeyGen {
         arr = arr.concat(res.data.data.avatars.map<IAvatar>(el => {
             return {
                 ...el,
-                type: 'avatar'
+                type: AvatarType.Avatar
             }
         }));
         arr = arr.concat(res.data.data.talking_photos.map<ITalkingPhoto>(el => {
             return {
                 ...el,
-                type: 'talking_photo'
+                type: AvatarType.TalkingPhoto
             }
         }))
         return arr;

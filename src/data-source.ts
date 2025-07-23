@@ -1,12 +1,8 @@
 import "reflect-metadata"
 import { DataSource } from "typeorm"
-import { User } from "./entity/User"
-import { Video } from "./entity/Video"
-import { Subtitles } from "./entity/Subtitles"
-import { Avatar } from "./entity/Avatar"
-import { Voice } from "./entity/Voice"
 import { Insertion } from "./entity/Insertion"
-import { Fragment } from "./entity/Fragment"
+import { Video } from "./entity/Video"
+
 
 export const AppDataSource = new DataSource({
     type: "postgres",
@@ -17,7 +13,7 @@ export const AppDataSource = new DataSource({
     database: "test",
     synchronize: true,
     logging: false,
-    entities: [User, Video, Subtitles, Avatar, Voice, Insertion, Fragment],
+    entities: [Video, Insertion],
     migrations: [],
     subscribers: [],
 })
