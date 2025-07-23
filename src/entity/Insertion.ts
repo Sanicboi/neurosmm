@@ -17,7 +17,7 @@ export class Insertion {
     })
     buffer: Buffer;
 
-    @Column({
+    @Column('real', {
         nullable: true
     })
     duration: number;
@@ -27,7 +27,7 @@ export class Insertion {
     })
     prompt: string;
 
-    @Column({
+    @Column('real', {
         nullable: true
     })
     start: number;
