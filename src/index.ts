@@ -79,12 +79,14 @@ AppDataSource.initialize()
         console.log("Received webhook")
         if (!req.body) return res.status(400).end();
         if (req.body.event_type === "avatar_video.success") {
+          console.log("Is correct type")
           const video = await manager.findOne(Video, {
             where: {
               id: +req.body.event_data.callback_id,
             },
           });
           if (!video) return res.status(200).end();
+          console.log("Video found!");
           video.buffer = (
             await axios.get(req.body.event_data.url, {
               responseType: "arraybuffer",
@@ -102,6 +104,8 @@ AppDataSource.initialize()
             Keyboard([Btn("Монтировать", `edit-${video.id}`)])
           );
           
+        } else {
+          console.log(req.body);
         }
         res.status(200).end()
       }
