@@ -211,7 +211,7 @@ AppDataSource.initialize()
         let outPath = path.join(process.cwd(), 'video', 'final.mp4');
         let assPath = path.join(process.cwd(), 'video', 'subtitles.ass');
         generateSubtitles(words, assPath);
-        addSubtitles(videoPath, assPath, outPath);
+        await addSubtitles(videoPath, assPath, outPath);
         fs.rmSync(videoPath);
         fs.rmSync(assPath);
         const buf = fs.readFileSync(outPath);
