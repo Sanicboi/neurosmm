@@ -77,6 +77,7 @@ AppDataSource.initialize()
         res
       ): Promise<any> => {
         console.log("Received webhook")
+        if (!req.body) res.status(400).end();
         if (req.body.event_type === "avatar_video.success") {
           const video = await manager.findOne(Video, {
             where: {
