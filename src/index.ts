@@ -9,7 +9,7 @@ import TelegramBot, {
 import { db, Avatar } from "./avatarDB";
 import OpenAI from "openai";
 import { Video } from "./entity/Video";
-import { analyzeVideoScript, combineScriptAndInsertions } from "./insertionAI";
+import { analyzeVideoScript } from "./insertionAI";
 import { heygen } from "./HeyGen";
 import { Insertion } from "./entity/Insertion";
 import { genVideo } from "./videoGen";
@@ -173,20 +173,24 @@ AppDataSource.initialize()
         if (!video) return;
         await bot.sendMessage(q.from.id, "Ретранскрибирую видео...");
         const words = await retranscribe(video.buffer);
-        await bot.sendMessage(
-          q.from.id,
-          "Определяю, куда вставлять вставки..."
-        );
-        const locations = await combineScriptAndInsertions(
-          video.insertions,
-          words
-        );
         await bot.sendMessage(q.from.id, "Вставляю вставки...");
         let name: string = "video.mp4";
         fs.writeFileSync(path.join(process.cwd(), "video", name), video.buffer);
-        for (const l of locations) {
-          const insertion = video.insertions.find((el) => el.id === l.id);
-          if (!insertion) continue;
+        for (const insertion of video.insertions) {
+          let startIdx, endIdx;
+          for (startIdx = 0; startIdx < words.length; startIdx++) {
+            if (insertion.startWord === words[startIdx].word || words[startIdx].word.includes(insertion.startWord)) {
+              break;
+            }
+          }
+          if (startIdx === words.length) continue;
+          for (endIdx = startIdx + 1; endIdx < words.length; endIdx++) {
+            if (insertion.endWord === words[endIdx].word || words[endIdx].word.includes(insertion.endWord)) {
+              break;
+            }
+          }
+          if (endIdx === words.length) endIdx--;
+
           let insPath = path.join(
             process.cwd(),
             "video",
@@ -198,8 +202,8 @@ AppDataSource.initialize()
             path.join(process.cwd(), "video", name),
             insPath,
             path.join(process.cwd(), "video", outName),
-            l.start,
-            l.end
+            words[startIdx].start,
+            Math.min(words[startIdx].start + insertion.duration, words[endIdx].end)
           );
           fs.rmSync(path.join(process.cwd(), "video", name));
           fs.rmSync(insPath);
@@ -256,9 +260,10 @@ AppDataSource.initialize()
         for (const i of analysis.insertions) {
           const insertion = new Insertion();
           insertion.video = video;
-          insertion.buffer = await genVideo(i);
+          insertion.buffer = await genVideo(i.prompt);
           insertion.duration = await getDuration(insertion.buffer);
-          insertion.prompt = i;
+          insertion.startWord = i.startWord;
+          insertion.endWord = i.endWord;
           await manager.save(insertion);
           await bot.sendVideo(msg.chat.id, insertion.buffer, {
             caption: "Вставка готова",

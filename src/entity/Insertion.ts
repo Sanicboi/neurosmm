@@ -25,7 +25,12 @@ export class Insertion {
     @Column({
         nullable: true
     })
-    prompt: string;
+    startWord: string;
+
+    @Column({
+        nullable: true
+    })
+    endWord: string;
 
     @Column('real', {
         nullable: true
