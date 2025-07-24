@@ -94,7 +94,6 @@ class HeyGen {
                 'x-api-key': this.token
             }
         });
-        console.log(res.data);
         let arr: (IAvatar | ITalkingPhoto)[] = [];
         arr = arr.concat(res.data.data.avatars.map<IAvatar>(el => {
             return {

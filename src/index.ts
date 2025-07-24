@@ -76,6 +76,7 @@ AppDataSource.initialize()
         >,
         res
       ): Promise<any> => {
+        console.log("Received webhook")
         if (req.body.event_type === "avatar_video.success") {
           const video = await manager.findOne(Video, {
             where: {
@@ -99,6 +100,7 @@ AppDataSource.initialize()
             "Видео готово",
             Keyboard([Btn("Монтировать", `edit-${video.id}`)])
           );
+          res.status(200).end()
         }
       }
     );
