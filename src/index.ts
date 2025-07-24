@@ -101,8 +101,9 @@ AppDataSource.initialize()
             "Видео готово",
             Keyboard([Btn("Монтировать", `edit-${video.id}`)])
           );
-          res.status(200).end()
+          
         }
+        res.status(200).end()
       }
     );
 
