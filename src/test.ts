@@ -5,10 +5,8 @@ import { AvatarType } from './avatarDB';
 (async () => {
 
 
-    const avatars = await heygen.getAvatars();
+    const avatars = await heygen.getVoices();
     for (const a of avatars) {
-        if (a.type === AvatarType.Avatar) {
-            console.log(a.avatar_id);
-        }
+        console.log(a.voice_id, a.gender, a.language);
     }
 })();

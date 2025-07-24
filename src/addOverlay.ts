@@ -5,12 +5,16 @@ export const addOverlay = async (mainOverlay: string, insertion: string, out: st
         ffmpeg()
             .input(mainOverlay)
             .input(insertion)
-            .complexFilter([
-                `[1:v]scale=1080:720[ol]`,
-                `[0:v][ol]overlay=enable='between(t,${from},${to})':eof_action=pass[outv]`
-            ], 'outv')
+            .complexFilter({
+                filter: 'overlay',
+                options: {
+                    enable: `between(t\\,${from}\\,${to})`
+                },
+                inputs: "[0:v][1:v]",
+                outputs: '[v]'
+            })
             .outputOptions([
-                '-map [outv]',
+                '-map [v]',
                 '-map 0:a?',
                 '-c:v libx264',
                 '-c:a aac',
