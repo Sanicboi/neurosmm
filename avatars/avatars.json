@@ -1,32 +1,3 @@
 [
-    {
-        "id": "501621fa128d4ab692ac7725fdc375f4",
-        "name": "Roman 1",
-        "voiceId": "2f5abd85c90943a9aec42f6e9ec0d164",
-        "type": "talking_photo"
-    },
-    {
-        "id": "78076a9fcb234c18990abdaa11687b50",
-        "name": "Roman 2",
-        "type": "talking_photo",
-        "voiceId": "2f5abd85c90943a9aec42f6e9ec0d164"
-    },
-    {
-        "id": "4c6df0b9e5e54117b6cd1f247f848f62",
-        "name": "Roman 3",
-        "type": "talking_photo",
-        "voiceId": "443e946ce98f47c18d2ad309dba413e9"
-    },
-    {
-        "id": "850eac64aa844fc0a35453acf230ad4b",
-        "name": "Thomas",
-        "type": "avatar",
-        "voiceId": "77adf54adb1d46ce9c70d0b50ce7bc54"
-    },
-    {
-        "id": "253446ebca244c20b767944190d15609",
-        "name": "Ashley",
-        "type": "avatar",
-        "voiceId": "50ab8f40f8a34d66aa4338729900c1b0"
-    }
+    
 ]

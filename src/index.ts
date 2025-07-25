@@ -181,6 +181,7 @@ AppDataSource.initialize()
             endWord: insertion.endWord,
             startWord: insertion.startWord,
           });
+          console.log(`${location.start}--${location.end}`);
 
           let insPath = path.join(
             process.cwd(),
