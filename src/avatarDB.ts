@@ -61,6 +61,10 @@ class AvatarDatabase {
     private filePath: string = path.join(process.cwd(), 'avatars', 'avatars.json');
 
     constructor() {
+        const exists = fs.existsSync(this.filePath);
+        if (!exists) {
+            fs.writeFileSync(this.filePath, JSON.stringify([]), 'utf-8');
+        }
         const avatars: {
             name: string,
             type: AvatarType,
