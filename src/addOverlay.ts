@@ -22,7 +22,7 @@ export const addOverlays = async (
         filters.push({
             filter: 'overlay',
             options: {
-              enable: `between(t\\,${insertion.from}\\,${insertion.to})`
+              enable: `between(t\\,${insertion.from.toFixed(5)}\\,${insertion.to.toFixed(5)})`
             },
             inputs: [`${i === 0 ? '0:v' : `tmp${i}`}`, `${i + 1}:v`],
             outputs: `tmp${i + 1}`

@@ -197,7 +197,7 @@ AppDataSource.initialize()
           fs.writeFileSync(insPath, insertion.buffer);
           insertions.push({
             from: location.start,
-            to: location.end,
+            to: Math.min(location.end, location.start + insertion.duration),
             path: insPath
           });
         }
