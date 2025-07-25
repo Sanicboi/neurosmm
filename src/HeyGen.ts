@@ -64,6 +64,11 @@ export interface ICreateVideo {
             pitch?: number;
             emotion?: 'Excited' | 'Friendly' | 'Serious' | 'Soothing' | 'Broadcaster';
             locale?: string;
+        },
+        background?: {
+            type: 'image',
+            url: string,
+            fit: 'cover' | 'crop' | 'contain' | 'none'
         }
     }[];
     dimension: {

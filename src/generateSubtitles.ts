@@ -20,7 +20,7 @@ const combineWords = (words: IWord[]): IWord[] => {
     const duration = curr.end - curr.start;
     const last = a.length - 1;
     const lastDuration = a[last].end - a[last].start;
-    if (lastDuration + duration < 3) {
+    if (lastDuration + duration < 3 && curr.word[0] === curr.word[0].toLowerCase()) {
       a[last].end = curr.end;
       a[last].word += " " + curr.word;
     } else {

@@ -31,11 +31,13 @@ enum Waiter {
   Script = "script",
   Avatar = 'avatar',
   Voice = 'voice',
-  Name = 'name'
+  Name = 'name',
+  Background = 'background'
 }
 let waiter: Waiter = Waiter.None;
 let avId: string | null = null;
 let voiceId: string | null = null;
+let photoUrl: string | null = null;
 
 const Btn = (text: string, data: string): InlineKeyboardButton[] => [
   {
@@ -154,9 +156,9 @@ AppDataSource.initialize()
     bot.on("callback_query", async (q) => {
       if (q.data?.startsWith("generate-avatar-")) {
         const id = q.data.split("-")[2];
-        waiter = Waiter.Script;
         avId = id;
-        await bot.sendMessage(q.from.id, "Пришлите скрипт");
+        waiter = Waiter.Background;
+        await bot.sendMessage(q.from.id, "Пришлите картинку заднего фона. Она должна быть 720*1080");
       }
 
       if (q.data?.startsWith("edit-")) {
@@ -230,6 +232,21 @@ AppDataSource.initialize()
       }
     });
 
+    bot.on('photo', async (msg) => {
+      if (!msg.photo) return;
+      let photo: TelegramBot.PhotoSize | null = null;
+      for (const p of msg.photo) {
+        if (p.height === 1080 && p.width === 720) {
+          photo = p;
+          break;
+        }
+      }
+      if (!photo) return await bot.sendMessage(msg.chat.id, 'Фото неверного размера!');
+      photoUrl = await bot.getFileLink(photo.file_id);
+      waiter = Waiter.Script;
+      await bot.sendMessage(msg.chat.id, 'Пришлите скрипт');
+    })
+
     bot.onText(/./, async (msg) => {
       if (waiter === Waiter.Script) {
         waiter = Waiter.None;
@@ -293,6 +310,11 @@ AppDataSource.initialize()
                 voice_id: avatar.voiceId,
                 speed: 1.0,
               },
+              background: {
+                fit: 'cover',
+                type: 'image',
+                url: photoUrl!
+              }
             },
           ],
           caption: false,
