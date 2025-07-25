@@ -18,7 +18,7 @@ import axios from "axios";
 import { retranscribe } from "./retranscribe";
 import fs from "fs";
 import path from "path";
-import { addOverlay } from "./addOverlay";
+import { addOverlays } from "./addOverlay";
 import { generateSubtitles } from "./generateSubtitles";
 import { addSubtitles } from "./addSubtitles";
 
@@ -174,8 +174,14 @@ AppDataSource.initialize()
         await bot.sendMessage(q.from.id, "Ретранскрибирую видео...");
         const words = await retranscribe(video.buffer);
         await bot.sendMessage(q.from.id, "Вставляю вставки...");
-        let name: string = "video.mp4";
-        fs.writeFileSync(path.join(process.cwd(), "video", name), video.buffer);
+        let videoPath: string = path.join(process.cwd(), "video", "video.mp4");
+        let outputPath: string = path.join(process.cwd(), 'video', 'insertions.mp4');
+        fs.writeFileSync(videoPath, video.buffer);
+        let insertions: {
+          from: number,
+          to: number,
+          path: string
+        }[] = []
         for (const insertion of video.insertions) {
           const location = await findPosition(words, {
             endWord: insertion.endWord,
@@ -189,26 +195,25 @@ AppDataSource.initialize()
             `${insertion.id}.mp4`
           );
           fs.writeFileSync(insPath, insertion.buffer);
-          let outName = `video-${insertion.id}.mp4`;
-          await addOverlay(
-            path.join(process.cwd(), "video", name),
-            insPath,
-            path.join(process.cwd(), "video", outName),
-            location.start,
-            Math.min(location.start + insertion.duration, location.end)
-          );
-          fs.rmSync(path.join(process.cwd(), "video", name));
-          fs.rmSync(insPath);
-          name = outName;
+          insertions.push({
+            from: location.start,
+            to: location.end,
+            path: insPath
+          });
+        }
+
+        await addOverlays(videoPath, insertions, outputPath);
+        fs.rmSync(videoPath);
+        for (const ins of insertions) {
+          fs.rmSync(ins.path);
         }
 
         await bot.sendMessage(q.from.id, 'Вставки добавлены. Добавляю субтитры...');
-        let videoPath = path.join(process.cwd(), 'video', name)
         let outPath = path.join(process.cwd(), 'video', 'final.mp4');
         let assPath = path.join(process.cwd(), 'video', 'subtitles.ass');
         generateSubtitles(words, assPath);
-        await addSubtitles(videoPath, assPath, outPath);
-        fs.rmSync(videoPath);
+        await addSubtitles(outputPath, assPath, outPath);
+        fs.rmSync(outputPath);
         fs.rmSync(assPath);
         const buf = fs.readFileSync(outPath);
         fs.rmSync(outPath);
