@@ -9,7 +9,7 @@ import TelegramBot, {
 import { db, Avatar } from "./avatarDB";
 import OpenAI from "openai";
 import { Video } from "./entity/Video";
-import { analyzeVideoScript } from "./insertionAI";
+import { analyzeVideoScript, findPosition } from "./insertionAI";
 import { heygen } from "./HeyGen";
 import { Insertion } from "./entity/Insertion";
 import { genVideo } from "./videoGen";
@@ -177,19 +177,10 @@ AppDataSource.initialize()
         let name: string = "video.mp4";
         fs.writeFileSync(path.join(process.cwd(), "video", name), video.buffer);
         for (const insertion of video.insertions) {
-          let startIdx, endIdx;
-          for (startIdx = 0; startIdx < words.length; startIdx++) {
-            if (insertion.startWord === words[startIdx].word || words[startIdx].word.includes(insertion.startWord)) {
-              break;
-            }
-          }
-          if (startIdx === words.length) continue;
-          for (endIdx = startIdx + 1; endIdx < words.length; endIdx++) {
-            if (insertion.endWord === words[endIdx].word || words[endIdx].word.includes(insertion.endWord)) {
-              break;
-            }
-          }
-          if (endIdx === words.length) endIdx--;
+          const location = await findPosition(words, {
+            endWord: insertion.endWord,
+            startWord: insertion.startWord,
+          });
 
           let insPath = path.join(
             process.cwd(),
@@ -202,8 +193,8 @@ AppDataSource.initialize()
             path.join(process.cwd(), "video", name),
             insPath,
             path.join(process.cwd(), "video", outName),
-            words[startIdx].start,
-            Math.min(words[startIdx].start + insertion.duration, words[endIdx].end)
+            location.start,
+            Math.min(location.start + insertion.duration, location.end)
           );
           fs.rmSync(path.join(process.cwd(), "video", name));
           fs.rmSync(insPath);
