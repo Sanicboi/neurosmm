@@ -7,12 +7,7 @@ export const addSubtitles = async (
 ): Promise<void> => {
   await new Promise((resolve, reject) => {
     ffmpeg(videoPath)
-      .videoFilters([
-        {
-          filter: "ass",
-          options: assPath,
-        },
-      ])
+      .videoFilters(`subtitles=${assPath}`)
       .output(outPath)
       .outputOptions("-c:a copy")
       .on("end", resolve)

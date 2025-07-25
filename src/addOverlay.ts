@@ -3,33 +3,53 @@ import ffmpeg from "fluent-ffmpeg";
 export const addOverlays = async (
   mainOverlay: string,
   insertions: {
-    path: string,
-    from: number,
-    to: number
+    path: string;
+    from: number;
+    to: number;
   }[],
-  out: string,
+  out: string
 ): Promise<void> => {
   await new Promise((resolve, reject) => {
     let cmd = ffmpeg().input(mainOverlay);
     for (const insertion of insertions) {
-        cmd = cmd.input(insertion.path);
+      cmd = cmd.input(insertion.path);
     }
-    let filters: ffmpeg.FilterSpecification[] = [
-    ];
-    let lastOut: string = '0:v'
+    let filters: ffmpeg.FilterSpecification[] = [];
+    let lastOut: string = "0:v";
     for (let i = 0; i < insertions.length; i++) {
       const insertion = insertions[i];
-        filters.push({
-            filter: 'overlay',
-            options: {
-              enable: `between(t\\,${insertion.from.toFixed(5)}\\,${insertion.to.toFixed(5)})`
-            },
-            inputs: [`${i === 0 ? '0:v' : `tmp${i}`}`, `${i + 1}:v`],
-            outputs: `tmp${i + 1}`
-        });
-        lastOut = `tmp${i + 1}`;
+      const overlayInputIndex = i + 1;
+      const trimmed = `ol${i}`;
+      filters.push({
+        filter: 'trim',
+        options: {
+          duration: (insertion.to - insertion.from)
+        },
+        inputs: [`${overlayInputIndex}:v`],
+        outputs: [trimmed],
+      });
+
+      filters.push({
+        filter: 'setpts',
+        options: {
+          expr: `PTS+${insertion.from}/TB`
+        },
+        inputs: [trimmed],
+        outputs: [trimmed + 't']
+      });
+
+      const outName = `tmp${i + 1}`;
+      filters.push({
+        filter: "overlay",
+        options: {
+          enable: `between(t\\,${insertion.from}\\,${insertion.to})`,
+        },
+        inputs: [lastOut, trimmed + 't'],
+        outputs: [outName],
+      });
+      lastOut = outName;
     }
-      cmd
+    cmd
       .complexFilter(filters)
       .outputOptions([
         `-map [${lastOut}]`,

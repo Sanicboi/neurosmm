@@ -14,10 +14,9 @@ const formatTimeASS = (t: number): string => {
 const combineWords = (words: IWord[]): IWord[] => {
   return words.reduce<IWord[]>((a, curr) => {
     if (a.length === 0) {
-      a.push(curr);
+      a.push({ ...curr }); // Copy to avoid mutating input
       return a;
     }
-
     const duration = curr.end - curr.start;
     const last = a.length - 1;
     const lastDuration = a[last].end - a[last].start;
@@ -25,28 +24,26 @@ const combineWords = (words: IWord[]): IWord[] => {
       a[last].end = curr.end;
       a[last].word += " " + curr.word;
     } else {
-      a.push(curr);
+      a.push({ ...curr });
     }
-
     return a;
   }, []);
 };
 
 const generateAss = (words: IWord[]): string => {
-  const header = `
-      [Script Info]
-      ScriptType: v4.00+
-      PlayResX: 720
-      PlayResY: 1080
-      Collisions: Normal
-    
-      [V4+ Styles]
-      Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-      Style: Default,Vela Sans,40,&H00baff,&HFFFFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,2,2,60,60,60,0
-    
-      [Events
-      Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-      `;
+const header = `[Script Info]
+ScriptType: v4.00+
+PlayResX: 720
+PlayResY: 1080
+Collisions: Normal
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,40,&H00baff,&HFFFFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,2,2,60,60,60,0
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`;
   const events = words
     .map(
       (s) =>
@@ -55,10 +52,11 @@ const generateAss = (words: IWord[]): string => {
         )},Default,,0,0,0,,${s.word.replace(/\n/g, "\\N")}`
     )
     .join("\n");
-  return header + "\n" + events;
+  return header + events;
 };
+
 export const generateSubtitles = (words: IWord[], out: string): void => {
-    const together = combineWords(words);
-    const asString = generateAss(together);
-    fs.writeFileSync(out, asString, 'utf-8');
+  const together = combineWords(words);
+  const asString = generateAss(together);
+  fs.writeFileSync(out, asString, 'utf-8');
 };
