@@ -32,12 +32,20 @@ enum Waiter {
   Avatar = 'avatar',
   Voice = 'voice',
   Name = 'name',
-  Background = 'background'
+  Background = 'background',
+  Prompt = 'prompt'
 }
 let waiter: Waiter = Waiter.None;
 let avId: string | null = null;
 let voiceId: string | null = null;
 let photoUrl: string | null = null;
+let currentInsertions: {
+    prompt: string;
+    startWord: string;
+    endWord: string;
+}[] = [];
+let currentScript: string = '';
+let currentIndex: number = 0;
 
 const Btn = (text: string, data: string): InlineKeyboardButton[] => [
   {
@@ -230,10 +238,81 @@ AppDataSource.initialize()
           filename: 'video.mp4'
         })
       }
+
+      if (q.data?.startsWith('change-')) {
+        const idx = +q.data.split(' ')[1];
+        if (idx >= currentInsertions.length) return;
+        waiter = Waiter.Prompt;
+        currentIndex = idx;
+        await bot.sendMessage(q.from.id, 'Пришлите мне новый промпт для этой вставки')
+      }
+
+      if (q.data === 'finish') {
+        
+        const video = await manager.findOne(Video, {
+          where: {
+            finished: false,
+          }
+        });
+        if (!video) return;
+        await bot.sendMessage(q.from.id, "Генерирую вставки...");
+        for (const i of currentInsertions) {
+          const insertion = new Insertion();
+          insertion.video = video;
+          insertion.buffer = await genVideo(i.prompt);
+          insertion.duration = await getDuration(insertion.buffer);
+          insertion.startWord = i.startWord;
+          insertion.endWord = i.endWord;
+          await manager.save(insertion);
+          await bot.sendVideo(q.from.id, insertion.buffer, {
+            caption: "Вставка готова",
+          }, {
+          contentType: 'video/mp4',
+          filename: 'video.mp4'
+        });
+        }
+
+        await bot.sendMessage(
+          q.from.id,
+          "Все вставки готовы. Начинаю генерировать хейген..."
+        );
+        const avatar = db.getOne(video.avatarId);
+        if (!avatar) return;
+        await heygen.generateVideo({
+          dimension: {
+            height: 1080,
+            width: 720,
+          },
+          video_inputs: [
+            {
+              character: {
+                type: avatar.type,
+                avatar_id: avatar.id,
+                talking_photo_id: avatar.id,
+                avatar_style: "normal",
+              },
+              voice: {
+                type: "text",
+                input_text: currentScript,
+                voice_id: avatar.voiceId,
+                speed: 1.0,
+              },
+              background: {
+                fit: 'cover',
+                type: 'image',
+                url: photoUrl!
+              }
+            },
+          ],
+          caption: false,
+          callback_id: String(video.id),
+        });
+      }
     });
 
     bot.on('photo', async (msg) => {
       if (!msg.photo) return;
+      if (waiter !== Waiter.Background) return;
       let photo: TelegramBot.PhotoSize | null = null;
       for (const p of msg.photo) {
         if (p.height === 1080 && p.width === 720) {
@@ -257,11 +336,18 @@ AppDataSource.initialize()
           return await bot.sendMessage(msg.chat.id, "Сначала выберите аватар!");
         await bot.sendMessage(msg.chat.id, "Анализирую скрипт...");
         const analysis = await analyzeVideoScript(msg.text!);
+        currentInsertions = analysis.insertions;
+        currentScript = analysis.script;
+
         await bot.sendMessage(
           msg.chat.id,
           `Анализ:\nРечь ИИ-Аватара:${
             analysis.script
-          }\n\nПромпты для вставок:\n${analysis.insertions.map(el => el.prompt).join("\n\n")}`
+          }\n\nПромпты для вставок:\n${analysis.insertions.map(el => el.prompt).join("\n\n")}`,
+          Keyboard([
+            ...currentInsertions.map((el, idx) => Btn(`Изменить промпт вставки ${idx}`, `change-${idx}`)),
+            Btn('Генерировать', 'finish')
+          ])
         );
 
         const video = new Video();
@@ -269,57 +355,8 @@ AppDataSource.initialize()
         video.avatarId = avatar.id;
         video.chatId = String(msg.chat.id);
         await manager.save(video);
-        await bot.sendMessage(msg.chat.id, "Генерирую вставки...");
 
-        for (const i of analysis.insertions) {
-          const insertion = new Insertion();
-          insertion.video = video;
-          insertion.buffer = await genVideo(i.prompt);
-          insertion.duration = await getDuration(insertion.buffer);
-          insertion.startWord = i.startWord;
-          insertion.endWord = i.endWord;
-          await manager.save(insertion);
-          await bot.sendVideo(msg.chat.id, insertion.buffer, {
-            caption: "Вставка готова",
-          }, {
-          contentType: 'video/mp4',
-          filename: 'video.mp4'
-        });
-        }
-
-        await bot.sendMessage(
-          msg.chat.id,
-          "Все вставки готовы. Начинаю генерировать хейген..."
-        );
-        await heygen.generateVideo({
-          dimension: {
-            height: 1080,
-            width: 720,
-          },
-          video_inputs: [
-            {
-              character: {
-                type: avatar.type,
-                avatar_id: avatar.id,
-                talking_photo_id: avatar.id,
-                avatar_style: "normal",
-              },
-              voice: {
-                type: "text",
-                input_text: analysis.script,
-                voice_id: avatar.voiceId,
-                speed: 1.0,
-              },
-              background: {
-                fit: 'cover',
-                type: 'image',
-                url: photoUrl!
-              }
-            },
-          ],
-          caption: false,
-          callback_id: String(video.id),
-        });
+        
       } else if (waiter === Waiter.Avatar) {
         avId = msg.text!;
         waiter = Waiter.Voice;
@@ -341,6 +378,12 @@ AppDataSource.initialize()
           console.error(err);
           await bot.sendMessage(msg.chat.id, 'Неверный айди голоса или аватара! Попробуйте добавить снова')
         }
+      } else if (waiter === Waiter.Prompt) {
+        currentInsertions[currentIndex].prompt = msg.text!;
+        currentIndex = 0;
+        waiter = Waiter.None;
+        await bot.deleteMessage(msg.chat.id, msg.message_id);
+        await bot.deleteMessage(msg.chat.id, msg.message_id - 1);
       }
     });
 
