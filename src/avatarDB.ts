@@ -88,6 +88,7 @@ class AvatarDatabase {
     }
 
     public getOne(id: string): Avatar | undefined {
+        console.log(this.avatars);
         return this.avatars.find(el => el.id === id);
     }
 
