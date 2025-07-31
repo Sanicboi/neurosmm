@@ -30,12 +30,22 @@ export const addOverlays = async (
       });
 
       filters.push({
+        filter: 'scale',
+        options: {
+          w: 720,
+          h: 1080
+        },
+        inputs: [trimmed],
+        outputs: [trimmed+'s']
+      })
+
+      filters.push({
         filter: 'setpts',
         options: {
           expr: `PTS+${insertion.from}/TB`
         },
-        inputs: [trimmed],
-        outputs: [trimmed + 't']
+        inputs: [trimmed+'s'],
+        outputs: [trimmed + 's' + 't']
       });
 
       const outName = `tmp${i + 1}`;
@@ -44,7 +54,7 @@ export const addOverlays = async (
         options: {
           enable: `between(t\\,${insertion.from}\\,${insertion.to})`,
         },
-        inputs: [lastOut, trimmed + 't'],
+        inputs: [lastOut, trimmed + 's' + 't'],
         outputs: [outName],
       });
       lastOut = outName;
