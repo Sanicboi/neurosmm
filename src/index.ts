@@ -357,7 +357,12 @@ AppDataSource.initialize()
           ])
         );
 
-        const video = new Video();
+        const video = await manager.findOne(Video, {
+          where: {
+            finished: false
+          }
+        });
+        if (!video) return;
         video.voiceId = avatar.voiceId;
         video.avatarId = avatar.id;
         video.chatId = String(msg.chat.id);
