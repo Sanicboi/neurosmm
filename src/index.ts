@@ -307,6 +307,7 @@ AppDataSource.initialize()
           caption: false,
           callback_id: String(video.id),
         });
+        console.log("Sent request");
       }
     });
 
