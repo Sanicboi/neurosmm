@@ -148,7 +148,7 @@ AppDataSource.initialize()
       await manager
         .createQueryBuilder(Video, "video")
         .delete()
-        .where("video.finished = true")
+        .where("video.finished = false")
         .execute();
 
       const video = new Video();
