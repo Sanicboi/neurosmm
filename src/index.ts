@@ -278,7 +278,9 @@ AppDataSource.initialize()
         );
         const avatar = db.getOne(video.avatarId);
         if (!avatar) return;
-        await heygen.generateVideo({
+        console.log("Found")
+        try {
+                  await heygen.generateVideo({
           dimension: {
             height: 1080,
             width: 720,
@@ -307,6 +309,10 @@ AppDataSource.initialize()
           caption: false,
           callback_id: String(video.id),
         });
+        } catch (error) {
+          console.error(error);
+        }
+
         console.log("Sent request");
       }
     });
