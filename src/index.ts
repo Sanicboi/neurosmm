@@ -247,6 +247,7 @@ AppDataSource.initialize()
         await bot.sendMessage(q.from.id, 'Пришлите мне новый промпт для этой вставки')
       }
 
+
       if (q.data === 'finish') {
         
         const video = await manager.findOne(Video, {
@@ -352,8 +353,7 @@ AppDataSource.initialize()
             analysis.script
           }\n\nПромпты для вставок:\n${analysis.insertions.map(el => el.prompt).join("\n\n")}`,
           Keyboard([
-            ...currentInsertions.map((el, idx) => Btn(`Изменить промпт вставки ${idx}`, `change-${idx}`)),
-            Btn('Генерировать', 'finish')
+            Btn('Начать генерацию', 'finish')
           ])
         );
 
@@ -367,6 +367,13 @@ AppDataSource.initialize()
         video.avatarId = avatar.id;
         video.chatId = String(msg.chat.id);
         await manager.save(video);
+
+        for (let i = 0; i < analysis.insertions.length; i++) {
+          const insertion = analysis.insertions[i];
+          await bot.sendMessage(msg.chat.id, `Вставка ${i+1}. Промпт: ${insertion.prompt}\nНачало: "...${insertion.startWord}..."\nКонец: "...${insertion.endWord}..."`, Keyboard([
+            Btn('Редактировать промпт', `change-${i}`)
+          ]))
+        }
 
         
       } else if (waiter === Waiter.Avatar) {
